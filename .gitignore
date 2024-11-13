@@ -10,9 +10,11 @@ public/img/avatar/
 *.exe
 *.exe~
 /gogs
+/.dev/gogs
 profile/
 *.pem
 output*
 /release
 .task
 .envrc
+/gogs_data

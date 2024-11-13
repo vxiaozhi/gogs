@@ -624,6 +624,11 @@ func runWeb(c *cli.Context) error {
 			m.Get("/stars", repo.Stars)
 			m.Get("/watchers", repo.Watchers)
 		}, context.ServeGoGet(), ignSignIn, context.RepoAssignment(), context.RepoRef())
+
+		m.Get("/erik/webstack", func(c *context.Context) {
+			c.Success("static/webstack")
+		})
+
 		// ***** END: Repository *****
 
 		// **********************
@@ -694,6 +699,10 @@ func runWeb(c *cli.Context) error {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	})
+
+	// m.Get("/erik/webstack", func(c *context.Context) {
+	// 	c.Success("static/webstack")
+	// })
 
 	m.NotFound(route.NotFound)
 

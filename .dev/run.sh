@@ -1,0 +1,1 @@
+.dev/gogs web -c .dev/app.ini 

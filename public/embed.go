@@ -8,5 +8,5 @@ import (
 	"embed"
 )
 
-//go:embed assets/* css/* img/* js/* plugins/*
+//go:embed assets/* css/* img/* js/* plugins/* static/*
 var Files embed.FS
