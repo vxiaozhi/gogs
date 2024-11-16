@@ -45,6 +45,7 @@ import (
 	"gogs.io/gogs/internal/route/repo"
 	"gogs.io/gogs/internal/route/user"
 	"gogs.io/gogs/internal/template"
+	"gogs.io/gogs/internal/staticsite"
 	"gogs.io/gogs/public"
 	"gogs.io/gogs/templates"
 )
@@ -624,8 +625,11 @@ func runWeb(c *cli.Context) error {
 			m.Get("/stars", repo.Stars)
 			m.Get("/watchers", repo.Watchers)
 		}, context.ServeGoGet(), ignSignIn, context.RepoAssignment(), context.RepoRef())
-
+		
+		
 		m.Get("/erik/webstack", func(c *context.Context) {
+			site_data_list, _ := staticsite.GetSiteDataList()
+			c.Data["SiteDataList"] = site_data_list
 			c.Success("static/webstack")
 		})
 

@@ -28,13 +28,13 @@ func main() {
 	app.Version = conf.App.Version
 	app.Commands = []cli.Command{
 		cmd.Web,
-		cmd.Serv,
-		cmd.Hook,
-		cmd.Cert,
-		cmd.Admin,
-		cmd.Import,
-		cmd.Backup,
-		cmd.Restore,
+		// cmd.Serv,
+		// cmd.Hook,
+		// cmd.Cert,
+		// cmd.Admin,
+		// cmd.Import,
+		// cmd.Backup,
+		// cmd.Restore,
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal("Failed to start application: %v", err)
