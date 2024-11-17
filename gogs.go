@@ -35,6 +35,7 @@ func main() {
 		// cmd.Import,
 		// cmd.Backup,
 		// cmd.Restore,
+		cmd.LetterAvatar,
 	}
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal("Failed to start application: %v", err)
