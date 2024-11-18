@@ -79,3 +79,18 @@ func DrawAvatarToPngBase64Smart(name string) (string, error) {
 	}
 	return DrawAvatarToPngBase64("A", false)
 }
+
+func GetFirstLetter(s string) string {
+	if len(s) == 0 {
+		return "A"
+	}
+	firstChar := []rune(s)[0]
+
+	if unicode.IsUpper(firstChar) {
+		return string(firstChar)
+	} else if unicode.IsLower(firstChar) {
+		return string(unicode.ToUpper(firstChar))
+	} else {
+		return "A"
+	}
+}

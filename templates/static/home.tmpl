@@ -53,10 +53,6 @@
     <meta name="twitter:title" content="WebStack - 收集国内外优秀设计网站、UI设计资源网站、灵感创意网站、素材资源网站，定时更新分享优质产品设计书签。www.webstack.cc">
     <meta name="twitter:description" content="UI设计,UI设计素材,设计导航,网址导航,设计资源,创意导航,创意网站导航,设计师网址大全,设计素材大全,设计师导航,UI设计资源,优秀UI设计欣赏,设计师导航,设计师网址大全,设计师网址导航,产品经理网址导航,交互设计师网址导航,www.webstack.cc">
     <meta name="twitter:image" content="http://www.webstack.cc/static/webstack/assets/images/webstack_banner_cn.png">
-
-    <style>
-        .logo h1{font-size: 20px; color: #fff}
-    </style>
 </head>
 
 <body class="page-body">
@@ -66,22 +62,14 @@
             <div class="sidebar-menu-inner">
                 <header class="logo-env">
                     <!-- logo -->
-                    <!-- 
-                        <div class="logo">
-                            <a href="index.html" class="logo-expanded">
-                                <img src="/static/webstack/assets/images/logo@2x.png" width="100%" alt="" />
-                            </a>
-                            <a href="index.html" class="logo-collapsed">
-                                <img src="/static/webstack/assets/images/logo-collapsed@2x.png" width="40" alt="" />
-                            </a>
-                        </div>
-                    -->
                     <div class="logo">
-                        <a href="#" class="logo-expanded">
-                            <h1>{{.SiteDataTmpl.Title}}</h1>
+                        <a href="index.html" class="logo-expanded">
+                            <img src="/static/webstack/assets/images/logo@2x.png" width="100%" alt="" />
+                        </a>
+                        <a href="index.html" class="logo-collapsed">
+                            <img src="/static/webstack/assets/images/logo-collapsed@2x.png" width="40" alt="" />
                         </a>
                     </div>
-                    
                     <div class="mobile-menu-toggle visible-xs">
                         <a href="#" data-toggle="user-info-menu">
                             <i class="linecons-cog"></i>
@@ -93,7 +81,7 @@
                 </header>
                 
               <ul id="main-menu" class="main-menu">
-                {{range .SiteDataTmpl.CategoryList}}
+                {{range .SiteDataList}}
                  <li>
                         <a href="#{{.CategoryLink}}" class="smooth">
                             <i class="{{.IClass}}"></i>
@@ -142,10 +130,10 @@
                 <!-- <a href="https://github.com/WebStackPage/WebStackPage.github.io" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a> -->
 
             </nav>
-            <!-- <h2 class="center">  我的导航系统 </h2> -->
-            {{range .SiteDataTmpl.CategoryList}}
+            <h2 class="center">  我的导航系统 </h2> 
+            {{range .SiteDataList}}
             <h4 class="text-gray"><i class="linecons-tag" style="margin-right: 7px;" id="{{.CategoryLink}}"></i>{{.Category}}</h4>
-                {{range .RowsData}}
+                {{range .Rows}}
                  <div class="row">
                   {{range .UrlItems}}
                     <div class="col-sm-3">

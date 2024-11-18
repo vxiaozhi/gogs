@@ -1,0 +1,1 @@
+cd public/static/webstack/assets/images/letters/ && ../../../../../../.dev/gogs LetterAvatar --subcmd=upperletters
