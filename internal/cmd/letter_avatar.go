@@ -77,8 +77,9 @@ func drawLettersAvatar(isUpper bool) {
 	if isUpper {
 		// 大写字母
 		for i := 65; i <= 90; i++ {
-			filename := string(i) + ".png"
-			err := staticsite.DrawAvatarToPngFile(string(i), false, filename)
+			charstr := string(rune(i))
+			filename := charstr + ".png"
+			err := staticsite.DrawAvatarToPngFile(charstr, false, filename)
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -86,8 +87,9 @@ func drawLettersAvatar(isUpper bool) {
 	} else {
 		// 小写字母
 		for i := 97; i <= 122; i++ {
-			filename := string(i) + ".png"
-			err := staticsite.DrawAvatarToPngFile(string(i), false, filename)
+			charstr := string(rune(i))
+			filename := charstr + ".png"
+			err := staticsite.DrawAvatarToPngFile(charstr, false, filename)
 			if err != nil {
 				log.Fatal(err)
 			}
