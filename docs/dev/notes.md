@@ -5,6 +5,7 @@
 ## 配置文件加载流程
 
 优先从  `custom/conf/app.ini` 加载配置， 如果该文件不存在，再从 `conf/app.ini` 加载。
+存在 `custom/conf/app.ini` 文件时，并非全覆盖而是按照Section粒度覆盖。
 
 相关代码如下：
 

@@ -38,7 +38,6 @@ import (
 	"gogs.io/gogs/internal/osutil"
 	"gogs.io/gogs/internal/route"
 	"gogs.io/gogs/internal/route/admin"
-	apiv1 "gogs.io/gogs/internal/route/api/v1"
 	"gogs.io/gogs/internal/route/dev"
 	"gogs.io/gogs/internal/route/lfs"
 	"gogs.io/gogs/internal/route/org"
@@ -172,7 +171,11 @@ func runWeb(c *cli.Context) error {
 	m := newMacaron()
 
 	reqSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: true})
+
+	// 不需要登陆认证的走这里
 	ignSignIn := context.Toggle(&context.ToggleOptions{SignInRequired: conf.Auth.RequireSigninView})
+
+	// 需要处于非登录状态，如 访问登陆页。
 	reqSignOut := context.Toggle(&context.ToggleOptions{SignOutRequired: true})
 
 	bindIgnErr := binding.BindIgnErr
@@ -180,43 +183,61 @@ func runWeb(c *cli.Context) error {
 	m.SetAutoHead(true)
 
 	m.Group("", func() {
+		// 首页
 		m.Get("/", ignSignIn, route.Home)
+		//发现页
 		m.Group("/explore", func() {
 			m.Get("", func(c *context.Context) {
-				c.Redirect(conf.Server.Subpath + "/explore/repos")
+				c.Redirect(conf.Server.Subpath + "/explore/navs")
 			})
-			m.Get("/repos", route.ExploreRepos)
-			m.Get("/users", route.ExploreUsers)
-			m.Get("/organizations", route.ExploreOrganizations)
+			//发现导航
+			m.Get("/navs", route.ExploreRepos)
+			// 发现趋势
+			m.Get("/trends", route.ExploreUsers)
+			//m.Get("/organizations", route.ExploreOrganizations)
 		}, ignSignIn)
+
+		//首次使用安装页面
 		m.Combo("/install", route.InstallInit).Get(route.Install).
 			Post(bindIgnErr(form.Install{}), route.InstallPost)
-		m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
+
+		// issues 和 和并请求暂时不需要
+		//m.Get("/^:type(issues|pulls)$", reqSignIn, user.Issues)
 
 		// ***** START: User *****
 		m.Group("/user", func() {
 			m.Group("/login", func() {
+				// 登陆页面
 				m.Combo("").Get(user.Login).
 					Post(bindIgnErr(form.SignIn{}), user.LoginPost)
+				// 双因子认证
 				m.Combo("/two_factor").Get(user.LoginTwoFactor).Post(user.LoginTwoFactorPost)
 				m.Combo("/two_factor_recovery_code").Get(user.LoginTwoFactorRecoveryCode).Post(user.LoginTwoFactorRecoveryCodePost)
 			})
 
+			// 注册
 			m.Get("/sign_up", user.SignUp)
 			m.Post("/sign_up", bindIgnErr(form.Register{}), user.SignUpPost)
+
+			// 重置密码
 			m.Get("/reset_password", user.ResetPasswd)
 			m.Post("/reset_password", user.ResetPasswdPost)
 		}, reqSignOut)
 
+		// 用户设置页面
 		m.Group("/user/settings", func() {
+			// 个人信息设置
 			m.Get("", user.Settings)
 			m.Post("", bindIgnErr(form.UpdateProfile{}), user.SettingsPost)
+			//头像设置
 			m.Combo("/avatar").Get(user.SettingsAvatar).
 				Post(binding.MultipartForm(form.Avatar{}), user.SettingsAvatarPost)
 			m.Post("/avatar/delete", user.SettingsDeleteAvatar)
+			// 邮箱设置
 			m.Combo("/email").Get(user.SettingsEmails).
 				Post(bindIgnErr(form.AddEmail{}), user.SettingsEmailPost)
 			m.Post("/email/delete", user.DeleteEmail)
+			// 修改密码
 			m.Get("/password", user.SettingsPassword)
 			m.Post("/password", bindIgnErr(form.ChangePassword{}), user.SettingsPasswordPost)
 			m.Combo("/ssh").Get(user.SettingsSSHKeys).
@@ -260,13 +281,15 @@ func runWeb(c *cli.Context) error {
 
 		reqAdmin := context.Toggle(&context.ToggleOptions{SignInRequired: true, AdminRequired: true})
 
-		// ***** START: Admin *****
+		// ***** START: Admin 管理员 *****
 		m.Group("/admin", func() {
+			// 控制面板
 			m.Combo("").Get(admin.Dashboard).Post(admin.Operation) // "/admin"
 			m.Get("/config", admin.Config)
 			m.Post("/config/test_mail", admin.SendTestMail)
 			m.Get("/monitor", admin.Monitor)
 
+			// 用户管理
 			m.Group("/users", func() {
 				m.Get("", admin.Users)
 				m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(form.AdminCrateUser{}), admin.NewUserPost)
@@ -274,10 +297,12 @@ func runWeb(c *cli.Context) error {
 				m.Post("/:userid/delete", admin.DeleteUser)
 			})
 
+			// 组织管理
 			m.Group("/orgs", func() {
 				m.Get("", admin.Organizations)
 			})
 
+			// 仓库管理
 			m.Group("/repos", func() {
 				m.Get("", admin.Repos)
 				m.Post("/delete", admin.DeleteRepo)
@@ -299,6 +324,7 @@ func runWeb(c *cli.Context) error {
 		}, reqAdmin)
 		// ***** END: Admin *****
 
+		// 未登录情况下，查询用户信息、attachments信息
 		m.Group("", func() {
 			m.Group("/:username", func() {
 				m.Get("", user.Profile)
@@ -337,11 +363,13 @@ func runWeb(c *cli.Context) error {
 			m.Post("/releases/attachments", repo.UploadReleaseAttachment)
 		}, ignSignIn)
 
+		// 关注用户（follow）/ 取消关注(unfollow)
 		m.Group("/:username", func() {
 			m.Post("/action/:action", user.Action)
 		}, reqSignIn, context.InjectParamsUser())
 
 		if macaron.Env == macaron.DEV {
+			// 开发模式下，可以直接预览 template 下的内容。
 			m.Get("/template/*", dev.TemplatePreview)
 		}
 
@@ -365,7 +393,7 @@ func runWeb(c *cli.Context) error {
 			}, repo.InjectOrgRepoContext())
 		}
 
-		// ***** START: Organization *****
+		// ***** START: Organization （组织管理） *****
 		m.Group("/org", func() {
 			m.Group("", func() {
 				m.Get("/create", org.Create)
@@ -413,7 +441,7 @@ func runWeb(c *cli.Context) error {
 		}, reqSignIn)
 		// ***** END: Organization *****
 
-		// ***** START: Repository *****
+		// ***** START: Repository （仓库管理）*****
 		m.Group("/repo", func() {
 			m.Get("/create", repo.Create)
 			m.Post("/create", bindIgnErr(form.CreateRepo{}), repo.CreatePost)
@@ -423,6 +451,7 @@ func runWeb(c *cli.Context) error {
 				Post(bindIgnErr(form.CreateRepo{}), repo.ForkPost)
 		}, reqSignIn)
 
+		// 仓库设置
 		m.Group("/:username/:reponame", func() {
 			m.Group("/settings", func() {
 				m.Combo("").Get(repo.Settings).
@@ -472,13 +501,17 @@ func runWeb(c *cli.Context) error {
 			})
 		}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
 
+		// 对仓库action的操作，包括（关注/取消关注/点赞/取消点赞）
 		m.Post("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
+		// 未登录情况下，查看仓库的 工单、标签、里程碑信息。
 		m.Group("/:username/:reponame", func() {
 			m.Get("/issues", repo.RetrieveLabels, repo.Issues)
 			m.Get("/issues/:index", repo.ViewIssue)
 			m.Get("/labels/", repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", repo.Milestones)
 		}, ignSignIn, context.RepoAssignment(true))
+
+		// 对仓库工单、评论等的处理。
 		m.Group("/:username/:reponame", func() {
 			// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 			// So they can apply their own enable/disable logic on routers.
@@ -497,6 +530,8 @@ func runWeb(c *cli.Context) error {
 				m.Post("/delete", repo.DeleteComment)
 			})
 		}, reqSignIn, context.RepoAssignment(true))
+
+		// 未登录情况下，查看仓库wiki
 		m.Group("/:username/:reponame", func() {
 			m.Group("/wiki", func() {
 				m.Get("/?:page", repo.Wiki)
@@ -504,6 +539,7 @@ func runWeb(c *cli.Context) error {
 			}, repo.MustEnableWiki, context.RepoRef())
 		}, ignSignIn, context.RepoAssignment(false, true))
 
+		// 仓库 工单、标签、里程碑、内容等的增删改查。
 		m.Group("/:username/:reponame", func() {
 			// FIXME: should use different URLs but mostly same logic for comments of issue and pull reuqest.
 			// So they can apply their own enable/disable logic on routers.
@@ -576,6 +612,7 @@ func runWeb(c *cli.Context) error {
 			})
 		}, reqSignIn, context.RepoAssignment())
 
+		// 未登录情况下，查看仓库的分支、wiki、内容等。
 		m.Group("/:username/:reponame", func() {
 			m.Group("", func() {
 				m.Get("/releases", repo.MustBeNotBare, repo.Releases)
@@ -620,6 +657,8 @@ func runWeb(c *cli.Context) error {
 
 			m.Get("/compare/:before([a-z0-9]{40})\\.\\.\\.:after([a-z0-9]{40})", repo.MustBeNotBare, context.RepoRef(), repo.CompareDiff)
 		}, ignSignIn, context.RepoAssignment())
+
+		// 仓库的数据内容展示。
 		m.Group("/:username/:reponame", func() {
 			m.Get("", repo.Home)
 			m.Get("/stars", repo.Stars)
@@ -639,9 +678,10 @@ func runWeb(c *cli.Context) error {
 		// **********************
 
 		// TODO: Without session and CSRF
-		m.Group("/api", func() {
-			apiv1.RegisterRoutes(m)
-		}, ignSignIn)
+		// API 暂时不需要，注释掉。
+		// m.Group("/api", func() {
+		// 	apiv1.RegisterRoutes(m)
+		// }, ignSignIn)
 	},
 		session.Sessioner(session.Options{
 			Provider:       conf.Session.Provider,
@@ -668,7 +708,7 @@ func runWeb(c *cli.Context) error {
 	// ***************************
 	// ----- HTTP Git routes -----
 	// ***************************
-
+	// Git 命令的路由
 	m.Group("/:username/:reponame", func() {
 		m.Get("/tasks/trigger", repo.TriggerTask)
 
@@ -684,8 +724,10 @@ func runWeb(c *cli.Context) error {
 	// ***************************
 
 	m.Group("/-", func() {
+		// Prometheus 指标采集
 		m.Get("/metrics", app.MetricsFilter(), promhttp.Handler()) // "/-/metrics"
 
+		// 对html内容进行过滤，清除HTML中的有害内容
 		m.Group("/api", func() {
 			m.Post("/sanitize_ipynb", app.SanitizeIpynb()) // "/-/api/sanitize_ipynb"
 		})
@@ -702,10 +744,6 @@ func runWeb(c *cli.Context) error {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	})
-
-	// m.Get("/erik/webstack", func(c *context.Context) {
-	// 	c.Success("static/webstack")
-	// })
 
 	m.NotFound(route.NotFound)
 
