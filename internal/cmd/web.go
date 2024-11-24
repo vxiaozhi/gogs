@@ -191,9 +191,11 @@ func runWeb(c *cli.Context) error {
 				c.Redirect(conf.Server.Subpath + "/explore/navs")
 			})
 			//发现导航
-			m.Get("/navs", route.ExploreRepos)
-			// 发现趋势
-			m.Get("/trends", route.ExploreUsers)
+			m.Get("/navs", route.ExploreNavs)
+			// todo: 发现趋势
+			m.Get("/trends", route.ExploreTrends)
+			// m.Get("/repos", route.ExploreRepos)
+			// m.Get("/users", route.ExploreUsers)
 			//m.Get("/organizations", route.ExploreOrganizations)
 		}, ignSignIn)
 

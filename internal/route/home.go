@@ -48,6 +48,50 @@ func Home(c *context.Context) {
 	c.Success(HOME)
 }
 
+func ExploreNavs(c *context.Context) {
+	c.Data["Title"] = c.Tr("explore")
+	c.Data["PageIsExplore"] = true
+	c.Data["PageIsExploreRepositories"] = true
+
+	page := c.QueryInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	keyword := c.Query("q")
+	repos, count, err := database.SearchRepositoryByName(&database.SearchRepoOptions{
+		Keyword:  keyword,
+		UserID:   c.UserID(),
+		OrderBy:  "updated_unix DESC",
+		Page:     page,
+		PageSize: conf.UI.ExplorePagingNum,
+	})
+	if err != nil {
+		c.Error(err, "search repository by name")
+		return
+	}
+	c.Data["Keyword"] = keyword
+	c.Data["Total"] = count
+	c.Data["Page"] = paginater.New(int(count), conf.UI.ExplorePagingNum, page, 5)
+
+	if err = database.RepositoryList(repos).LoadAttributes(); err != nil {
+		c.Error(err, "load attributes")
+		return
+	}
+	c.Data["Repos"] = repos
+
+	c.Success(EXPLORE_REPOS)
+}
+
+func ExploreTrends(c *context.Context) {
+	c.Data["Title"] = c.Tr("explore")
+	c.Data["PageIsExplore"] = true
+	c.Data["PageIsExploreTrends"] = true
+
+	c.NotFound()
+	return
+}
+
 func ExploreRepos(c *context.Context) {
 	c.Data["Title"] = c.Tr("explore")
 	c.Data["PageIsExplore"] = true
