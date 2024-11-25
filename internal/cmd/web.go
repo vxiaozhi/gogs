@@ -43,7 +43,6 @@ import (
 	"gogs.io/gogs/internal/route/org"
 	"gogs.io/gogs/internal/route/repo"
 	"gogs.io/gogs/internal/route/user"
-	"gogs.io/gogs/internal/staticsite"
 	"gogs.io/gogs/internal/template"
 	"gogs.io/gogs/public"
 	"gogs.io/gogs/templates"
@@ -445,10 +444,13 @@ func runWeb(c *cli.Context) error {
 
 		// ***** START: Repository （仓库管理）*****
 		m.Group("/repo", func() {
+			// 创建新仓库
 			m.Get("/create", repo.Create)
 			m.Post("/create", bindIgnErr(form.CreateRepo{}), repo.CreatePost)
+			// 从外部如github迁移仓库
 			m.Get("/migrate", repo.Migrate)
 			m.Post("/migrate", bindIgnErr(form.MigrateRepo{}), repo.MigratePost)
+			// 从已有仓库 fork 新仓库
 			m.Combo("/fork/:repoid").Get(repo.Fork).
 				Post(bindIgnErr(form.CreateRepo{}), repo.ForkPost)
 		}, reqSignIn)
@@ -585,6 +587,7 @@ func runWeb(c *cli.Context) error {
 				Post(bindIgnErr(form.NewIssue{}), repo.CompareAndPullRequestPost)
 
 			m.Group("", func() {
+				// 对仓库文件内容进行编辑
 				m.Combo("/_edit/*").Get(repo.EditFile).
 					Post(bindIgnErr(form.EditRepoFile{}), repo.EditFilePost)
 				m.Combo("/_new/*").Get(repo.NewFile).
@@ -662,16 +665,27 @@ func runWeb(c *cli.Context) error {
 
 		// 仓库的数据内容展示。
 		m.Group("/:username/:reponame", func() {
-			m.Get("", repo.Home)
+			m.Group("/content", func() {
+				m.Get("", repo.Home)
+				m.Get("/stars", repo.Stars)
+				m.Get("/watchers", repo.Watchers)
+			})
+		}, ignSignIn, context.RepoAssignment(), context.RepoRef())
+
+		// 仓库主页展示。
+		m.Group("/:username/:reponame", func() {
+			m.Get("", repo.NavHome)
 			m.Get("/stars", repo.Stars)
 			m.Get("/watchers", repo.Watchers)
-		}, context.ServeGoGet(), ignSignIn, context.RepoAssignment(), context.RepoRef())
 
-		m.Get("/erik/webstack", func(c *context.Context) {
-			site_data_list, _ := staticsite.GetSiteDataTmpl()
-			c.Data["SiteDataTmpl"] = site_data_list
-			c.Success("static/webstack")
-		})
+		}, ignSignIn, context.RepoAssignment())
+
+		// for test
+		// m.Get("/erik/webstack", func(c *context.Context) {
+		// 	site_data_list, _ := staticsite.GetSiteDataTmpl()
+		// 	c.Data["SiteDataTmpl"] = site_data_list
+		// 	c.Success("static/webstack")
+		// })
 
 		// ***** END: Repository *****
 

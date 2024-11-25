@@ -21,6 +21,7 @@ import (
 	"gogs.io/gogs/internal/database"
 	"gogs.io/gogs/internal/gitutil"
 	"gogs.io/gogs/internal/markup"
+	"gogs.io/gogs/internal/staticsite"
 	"gogs.io/gogs/internal/template"
 	"gogs.io/gogs/internal/template/highlight"
 	"gogs.io/gogs/internal/tool"
@@ -231,6 +232,7 @@ func Home(c *context.Context) {
 	c.Data["PageIsViewFiles"] = true
 
 	if c.Repo.Repository.IsBare {
+		// 仓库是赤裸的，即空仓库没有实际文件
 		c.Success(BARE)
 		return
 	}
@@ -308,6 +310,16 @@ func Home(c *context.Context) {
 	c.Success(HOME)
 }
 
+func NavHome(c *context.Context) {
+	c.Data["PageIsViewNavHome"] = true
+
+	// 查询 仓库对应 的模板名称、数据内容等
+	template_name := c.Repo.Repository.TemplateName
+	site_data_list, _ := staticsite.GetSiteDataTmpl(staticsite.Site_data_list)
+	c.Data["SiteDataTmpl"] = site_data_list
+	//c.Data["SiteDataTmpl"] = staticsite.GetSiteDataTmpl(c.Repo.Repository.Content)
+	c.Success(fmt.Sprintf("static/%s", template_name))
+}
 func RenderUserCards(c *context.Context, total int, getter func(page int) ([]*database.User, error), tpl string) {
 	page := c.QueryInt("page")
 	if page <= 0 {

@@ -13,6 +13,20 @@ import (
 	"gogs.io/gogs/internal/repoutil"
 )
 
+/*
+该函数返回仓库的go-get信息，如请求：`http://sing2.tool333.com:8300/erik/json-demo?go-get=1`， 返回如下信息：
+<!doctype html>
+<html>
+	<head>
+		<meta name="go-import" content="sing2.tool333.com:8300/erik/json-demo git http://sing2.tool333.com:8300/erik/json-demo.git">
+		<meta name="go-source" content="sing2.tool333.com:8300/erik/json-demo _ http://sing2.tool333.com:8300/erik/json-demo/src/master{/dir} http://sing2.tool333.com:8300/erik/json-demo/src/master{/dir}/{file}#L{line}">
+	</head>
+	<body>
+		go get --insecure sing2.tool333.com:8300/erik/json-demo
+	</body>
+</html>
+*/
+
 // ServeGoGet does quick responses for appropriate go-get meta with status OK
 // regardless of whether the user has access to the repository, or the repository
 // does exist at all. This is particular a workaround for "go get" command which

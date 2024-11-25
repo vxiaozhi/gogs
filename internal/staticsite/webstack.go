@@ -10,7 +10,7 @@ import (
 	log "unknwon.dev/clog/v2"
 )
 
-var site_data_list string = `
+var Site_data_list string = `
 {
 	"title": "我的网址导航",
 	"keywords": "网址导航,网址导航网站,网址导航网站,网址导航网站,网址导航网站,网址导航网站,网址导航网站,网址导航网站",
@@ -359,9 +359,9 @@ var (
 // 	Rows          []SiteDataRow
 // }
 
-func GetSiteDataTmpl() (SiteDataTmpl, error) {
+func GetSiteDataTmpl(site_data_content string) (SiteDataTmpl, error) {
 	var site_data_tmpl SiteDataTmpl
-	err := json.Unmarshal([]byte(site_data_list), &site_data_tmpl)
+	err := json.Unmarshal([]byte(site_data_content), &site_data_tmpl)
 	if err != nil {
 		log.Error("Error: %v", err)
 		return SiteDataTmpl{}, err
