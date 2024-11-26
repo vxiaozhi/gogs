@@ -960,15 +960,16 @@ func initRepoCommit(tmpPath string, sig *git.Signature) (err error) {
 }
 
 type CreateRepoOptionsLegacy struct {
-	Name        string
-	Description string
-	Gitignores  string
-	License     string
-	Readme      string
-	IsPrivate   bool
-	IsUnlisted  bool
-	IsMirror    bool
-	AutoInit    bool
+	Name         string
+	Description  string
+	Gitignores   string
+	License      string
+	TemplateName string
+	Readme       string
+	IsPrivate    bool
+	IsUnlisted   bool
+	IsMirror     bool
+	AutoInit     bool
 }
 
 func getRepoInitFile(tp, name string) ([]byte, error) {
@@ -1222,6 +1223,7 @@ func CreateRepository(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repos
 		Name:         opts.Name,
 		LowerName:    strings.ToLower(opts.Name),
 		Description:  opts.Description,
+		TemplateName: opts.TemplateName,
 		IsPrivate:    opts.IsPrivate,
 		IsUnlisted:   opts.IsUnlisted,
 		EnableWiki:   true,

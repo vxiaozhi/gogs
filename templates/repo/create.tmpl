@@ -92,6 +92,19 @@
 					</div>
 
 					<div class="inline field">
+						<label>{{.i18n.Tr "repo.tmplname"}}</label>
+						<div class="ui search selection dropdown">
+							<input type="hidden" name="tmplname" value="{{.tmplname}}">
+							<div class="default text">{{.i18n.Tr "repo.tmplname_helper"}}</div>
+							<div class="menu">
+								{{range .TemplateNames}}
+									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{end}}
+							</div>
+						</div>
+					</div>
+
+					<div class="inline field">
 						<label>{{.i18n.Tr "repo.readme"}} <a target="_blank" rel="noopener noreferrer" href="https://github.com/gogits/go-gogs-client/wiki/Repositories#litte-notes-on-readme-template"><span class="octicon octicon-question"></span></a></label>
 						<div class="ui selection dropdown">
 							<input type="hidden" name="readme" value="{{.readme}}">

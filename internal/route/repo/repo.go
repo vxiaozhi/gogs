@@ -73,6 +73,7 @@ func Create(c *context.Context) {
 	c.Data["Gitignores"] = database.Gitignores
 	c.Data["Licenses"] = database.Licenses
 	c.Data["Readmes"] = database.Readmes
+	c.Data["TemplateNames"] = []string{"webstack"}
 	c.Data["readme"] = "Default"
 	c.Data["private"] = c.User.LastRepoVisibility
 	c.Data["IsForcedPrivate"] = conf.Repository.ForcePrivate
@@ -120,14 +121,15 @@ func CreatePost(c *context.Context, f form.CreateRepo) {
 	}
 
 	repo, err := database.CreateRepository(c.User, ctxUser, database.CreateRepoOptionsLegacy{
-		Name:        f.RepoName,
-		Description: f.Description,
-		Gitignores:  f.Gitignores,
-		License:     f.License,
-		Readme:      f.Readme,
-		IsPrivate:   f.Private || conf.Repository.ForcePrivate,
-		IsUnlisted:  f.Unlisted,
-		AutoInit:    f.AutoInit,
+		Name:         f.RepoName,
+		Description:  f.Description,
+		Gitignores:   f.Gitignores,
+		License:      f.License,
+		TemplateName: f.TemplateName,
+		Readme:       f.Readme,
+		IsPrivate:    f.Private || conf.Repository.ForcePrivate,
+		IsUnlisted:   f.Unlisted,
+		AutoInit:     f.AutoInit,
 	})
 	if err == nil {
 		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
