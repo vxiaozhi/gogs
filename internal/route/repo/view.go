@@ -311,6 +311,7 @@ func Home(c *context.Context) {
 }
 
 func NavHome(c *context.Context) {
+	log.Info("navhome: %v", c.Repo.Repository)
 	c.Data["PageIsViewNavHome"] = true
 
 	// 查询 仓库对应 的模板名称、数据内容等

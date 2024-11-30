@@ -125,7 +125,52 @@ func CreatePost(c *context.Context, f form.CreateRepo) {
 		Description:  f.Description,
 		Gitignores:   f.Gitignores,
 		License:      f.License,
-		TemplateName: f.TemplateName,
+		TemplateName: f.TmplName,
+		Readme:       f.Readme,
+		IsPrivate:    f.Private || conf.Repository.ForcePrivate,
+		IsUnlisted:   f.Unlisted,
+		AutoInit:     f.AutoInit,
+	})
+	if err == nil {
+		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
+		c.Redirect(conf.Server.Subpath + "/" + ctxUser.Name + "/" + repo.Name)
+		return
+	}
+
+	if repo != nil {
+		if errDelete := database.DeleteRepository(ctxUser.ID, repo.ID); errDelete != nil {
+			log.Error("DeleteRepository: %v", errDelete)
+		}
+	}
+
+	handleCreateError(c, err, "CreatePost", CREATE, &f)
+}
+
+func CreateNavPost(c *context.Context, f form.CreateRepo) {
+	c.Data["Title"] = c.Tr("new_repo")
+
+	c.Data["Gitignores"] = database.Gitignores
+	c.Data["Licenses"] = database.Licenses
+	c.Data["Readmes"] = database.Readmes
+
+	ctxUser := checkContextUser(c, f.UserID)
+	if c.Written() {
+		return
+	}
+	c.Data["ContextUser"] = ctxUser
+
+	if c.HasError() {
+		c.Success(CREATE)
+		return
+	}
+
+	log.Info("create nav:%v", f)
+	repo, err := database.CreateNav(c.User, ctxUser, database.CreateRepoOptionsLegacy{
+		Name:         f.RepoName,
+		Description:  f.Description,
+		Gitignores:   f.Gitignores,
+		License:      f.License,
+		TemplateName: f.TmplName,
 		Readme:       f.Readme,
 		IsPrivate:    f.Private || conf.Repository.ForcePrivate,
 		IsUnlisted:   f.Unlisted,

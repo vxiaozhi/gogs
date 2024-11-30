@@ -111,6 +111,54 @@ func editFile(c *context.Context, isNewFile bool) {
 	c.Success(tmplEditorEdit)
 }
 
+func EditField(c *context.Context) {
+	c.PageIs("Edit")
+	c.RequireHighlightJS()
+	c.RequireSimpleMDE()
+	//c.Data["IsNewFile"] = isNewFile
+
+	fieldName := c.Params(":field")
+	if fieldName != "content" {
+		c.NotFound()
+		return
+	}
+	p := []byte(c.Data["FieldContent"].(string))
+
+	c.Data["FileSize"] = len(p)
+	c.Data["FileName"] = "content"
+
+	// Only text file are editable online.
+	if !tool.IsTextFile(p) {
+		c.NotFound()
+		return
+	}
+
+	if err, content := template.ToUTF8WithErr(p); err != nil {
+		if err != nil {
+			log.Error("Failed to convert encoding to UTF-8: %v", err)
+		}
+		c.Data["FileContent"] = string(p)
+	} else {
+		c.Data["FileContent"] = content
+	}
+
+	c.Data["ParentTreePath"] = path.Dir(c.Repo.TreePath)
+	c.Data["TreeNames"] = "treeNames"
+	c.Data["TreePaths"] = "treePaths"
+	c.Data["BranchLink"] = "branchlink"
+	c.Data["commit_summary"] = ""
+	c.Data["commit_message"] = ""
+	c.Data["commit_choice"] = "direct"
+	c.Data["new_branch_name"] = ""
+	c.Data["last_commit"] = c.Repo.Commit.ID
+	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
+	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
+	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
+	c.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", conf.Server.Subpath, c.Repo.Repository.FullName())
+
+	c.Success(tmplEditorEdit)
+}
+
 func EditFile(c *context.Context) {
 	editFile(c, false)
 }

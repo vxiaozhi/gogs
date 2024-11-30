@@ -162,6 +162,7 @@ func RepoAssignment(pages ...bool) macaron.Handler {
 
 		c.Repo.Repository = repo
 		c.Data["RepoName"] = c.Repo.Repository.Name
+		c.Data["FieldContent"] = c.Repo.Repository.Content
 		c.Data["IsBareRepo"] = c.Repo.Repository.IsBare
 		c.Repo.RepoLink = repo.Link()
 		c.Data["RepoLink"] = c.Repo.RepoLink
@@ -294,6 +295,128 @@ func RepoAssignment(pages ...bool) macaron.Handler {
 		}
 		c.Data["BranchName"] = c.Repo.BranchName
 		c.Data["CommitID"] = c.Repo.CommitID
+
+		c.Data["IsGuest"] = !c.Repo.HasAccess()
+	}
+}
+
+// [0]: issues, [1]: wiki
+func NavAssignment(pages ...bool) macaron.Handler {
+	return func(c *Context) {
+		var (
+			owner        *database.User
+			err          error
+			isIssuesPage bool
+			isWikiPage   bool
+		)
+
+		if len(pages) > 0 {
+			isIssuesPage = pages[0]
+		}
+		if len(pages) > 1 {
+			isWikiPage = pages[1]
+		}
+
+		ownerName := c.Params(":username")
+		repoName := c.Params(":reponame")
+
+		// Check if the user is the same as the repository owner
+		if c.IsLogged && c.User.LowerName == strings.ToLower(ownerName) {
+			owner = c.User
+		} else {
+			owner, err = database.Handle.Users().GetByUsername(c.Req.Context(), ownerName)
+			if err != nil {
+				c.NotFoundOrError(err, "get user by name")
+				return
+			}
+		}
+		c.Repo.Owner = owner
+		c.Data["Username"] = c.Repo.Owner.Name
+
+		repo, err := database.GetRepositoryByName(owner.ID, repoName)
+		if err != nil {
+			c.NotFoundOrError(err, "get repository by name")
+			return
+		}
+
+		c.Repo.Repository = repo
+		c.Data["RepoName"] = c.Repo.Repository.Name
+		c.Data["FieldContent"] = c.Repo.Repository.Content
+		c.Data["IsBareRepo"] = c.Repo.Repository.IsBare
+		c.Repo.RepoLink = repo.Link()
+		c.Data["RepoLink"] = c.Repo.RepoLink
+		c.Data["RepoRelPath"] = c.Repo.Owner.Name + "/" + c.Repo.Repository.Name
+
+		// Admin has super access
+		if c.IsLogged && c.User.IsAdmin {
+			c.Repo.AccessMode = database.AccessModeOwner
+		} else {
+			c.Repo.AccessMode = database.Handle.Permissions().AccessMode(c.Req.Context(), c.UserID(), repo.ID,
+				database.AccessModeOptions{
+					OwnerID: repo.OwnerID,
+					Private: repo.IsPrivate,
+				},
+			)
+		}
+
+		// If the authenticated user has no direct access, see if the repository is a fork
+		// and whether the user has access to the base repository.
+		if c.Repo.AccessMode == database.AccessModeNone && repo.BaseRepo != nil {
+			mode := database.Handle.Permissions().AccessMode(c.Req.Context(), c.UserID(), repo.BaseRepo.ID,
+				database.AccessModeOptions{
+					OwnerID: repo.BaseRepo.OwnerID,
+					Private: repo.BaseRepo.IsPrivate,
+				},
+			)
+
+			// Users shouldn't have indirect access level higher than write.
+			if mode > database.AccessModeWrite {
+				mode = database.AccessModeWrite
+			}
+			c.Repo.AccessMode = mode
+		}
+
+		// Check access
+		if c.Repo.AccessMode == database.AccessModeNone {
+			// Redirect to any accessible page if not yet on it
+			if repo.IsPartialPublic() &&
+				(!(isIssuesPage || isWikiPage) ||
+					(isIssuesPage && !repo.CanGuestViewIssues()) ||
+					(isWikiPage && !repo.CanGuestViewWiki())) {
+				switch {
+				case repo.CanGuestViewIssues():
+					c.Redirect(repo.Link() + "/issues")
+				case repo.CanGuestViewWiki():
+					c.Redirect(repo.Link() + "/wiki")
+				default:
+					c.NotFound()
+				}
+				return
+			}
+
+			// Response 404 if user is on completely private repository or possible accessible page but owner doesn't enabled
+			if !repo.IsPartialPublic() ||
+				(isIssuesPage && !repo.CanGuestViewIssues()) ||
+				(isWikiPage && !repo.CanGuestViewWiki()) {
+				c.NotFound()
+				return
+			}
+
+			c.Repo.Repository.EnableIssues = repo.CanGuestViewIssues()
+			c.Repo.Repository.EnableWiki = repo.CanGuestViewWiki()
+		}
+
+		c.Data["Title"] = owner.Name + "/" + repo.Name
+		c.Data["Repository"] = repo
+		c.Data["Owner"] = c.Repo.Repository.Owner
+		c.Data["IsRepositoryOwner"] = c.Repo.IsOwner()
+		c.Data["IsRepositoryAdmin"] = c.Repo.IsAdmin()
+		c.Data["IsRepositoryWriter"] = c.Repo.IsWriter()
+
+		// repo is bare and display enable
+		if c.Repo.Repository.IsBare {
+			return
+		}
 
 		c.Data["IsGuest"] = !c.Repo.HasAccess()
 	}
@@ -446,6 +569,7 @@ func RequireRepoAdmin() macaron.Handler {
 }
 
 func RequireRepoWriter() macaron.Handler {
+	// 对仓库写权限进行检查
 	return func(c *Context) {
 		if !c.IsLogged || (!c.Repo.IsWriter() && !c.User.IsAdmin) {
 			c.NotFound()

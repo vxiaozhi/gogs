@@ -1198,6 +1198,50 @@ func createRepository(e *xorm.Session, doer, owner *User, repo *Repository) (err
 	return repo.loadAttributes(e)
 }
 
+func createNav(e *xorm.Session, doer, owner *User, repo *Repository) (err error) {
+	if err = isRepoNameAllowed(repo.Name); err != nil {
+		return err
+	}
+
+	// 判断Nav是否已经存在
+	has, err := e.Get(&Repository{
+		OwnerID:   owner.ID,
+		LowerName: strings.ToLower(repo.Name),
+	})
+
+	if err != nil {
+		return fmt.Errorf("IsRepositoryExist: %v", err)
+	} else if has {
+		return ErrRepoAlreadyExist{args: errutil.Args{"ownerID": owner.ID, "name": repo.Name}}
+	}
+
+	if _, err = e.Insert(repo); err != nil {
+		return err
+	}
+
+	_, err = e.Exec(dbutil.Quote("UPDATE %s SET num_repos = num_repos + 1 WHERE id = ?", "user"), owner.ID)
+	if err != nil {
+		return errors.Wrap(err, "increase owned repository count")
+	}
+
+	// Give access to all members in owner team.
+	if owner.IsOrganization() {
+		t, err := owner.getOwnerTeam(e)
+		if err != nil {
+			return fmt.Errorf("getOwnerTeam: %v", err)
+		} else if err = t.addRepository(e, repo); err != nil {
+			return fmt.Errorf("addRepository: %v", err)
+		}
+	} else {
+		// Organization automatically called this in addRepository method.
+		if err = repo.recalculateAccesses(e); err != nil {
+			return fmt.Errorf("recalculateAccesses: %v", err)
+		}
+	}
+
+	return nil
+}
+
 type ErrReachLimitOfRepo struct {
 	Limit int
 }
@@ -1243,6 +1287,7 @@ func CreateRepository(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repos
 
 	// No need for init mirror.
 	if !opts.IsMirror {
+		// 更新 git仓库
 		repoPath := RepoPath(owner.Name, repo.Name)
 		if err = initRepository(sess, repoPath, doer, repo, opts); err != nil {
 			RemoveAllWithNotice("Delete repository for initialization failure", repoPath)
@@ -1256,6 +1301,49 @@ func CreateRepository(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repos
 			return nil, fmt.Errorf("CreateRepository 'git update-server-info': %s", stderr)
 		}
 	}
+	if err = sess.Commit(); err != nil {
+		return nil, err
+	}
+
+	// Remember visibility preference
+	err = Handle.Users().Update(context.TODO(), owner.ID, UpdateUserOptions{LastRepoVisibility: &repo.IsPrivate})
+	if err != nil {
+		return nil, errors.Wrap(err, "update user")
+	}
+
+	return repo, nil
+}
+
+// CreateNav creates a nav for given user or organization.
+func CreateNav(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repository, err error) {
+	if !owner.canCreateRepo() {
+		return nil, ErrReachLimitOfRepo{Limit: owner.maxNumRepos()}
+	}
+
+	repo := &Repository{
+		OwnerID:      owner.ID,
+		Owner:        owner,
+		Name:         opts.Name,
+		LowerName:    strings.ToLower(opts.Name),
+		Description:  opts.Description,
+		TemplateName: opts.TemplateName,
+		IsPrivate:    opts.IsPrivate,
+		IsUnlisted:   opts.IsUnlisted,
+		EnableWiki:   true,
+		EnableIssues: true,
+		EnablePulls:  true,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err = createNav(sess, doer, owner, repo); err != nil {
+		return nil, err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return nil, err
 	}

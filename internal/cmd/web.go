@@ -455,6 +455,17 @@ func runWeb(c *cli.Context) error {
 				Post(bindIgnErr(form.CreateRepo{}), repo.ForkPost)
 		}, reqSignIn)
 
+		// *****（导航创建、fork）*****
+		m.Group("/nav", func() {
+			// 创建导航
+			m.Get("/create", repo.Create)
+			m.Post("/create", bindIgnErr(form.CreateRepo{}), repo.CreateNavPost)
+
+			// 从已有导航页 fork 新导航
+			m.Combo("/fork/:repoid").Get(repo.Fork).
+				Post(bindIgnErr(form.CreateRepo{}), repo.ForkPost)
+		}, reqSignIn)
+
 		// 仓库设置
 		m.Group("/:username/:reponame", func() {
 			m.Group("/settings", func() {
@@ -615,6 +626,14 @@ func runWeb(c *cli.Context) error {
 
 				c.Data["PageIsViewFiles"] = true
 			})
+
+			m.Group("", func() {
+				// 对仓库文件内容进行编辑, 更新内容保存至db字段。
+				m.Combo("/_editd/:field").Get(repo.EditField).
+					Post(bindIgnErr(form.EditRepoFile{}), repo.EditFilePost)
+				m.Post("/_previewd/*", bindIgnErr(form.EditPreviewDiff{}), repo.DiffPreviewPost)
+
+			}, reqRepoWriter)
 		}, reqSignIn, context.RepoAssignment())
 
 		// 未登录情况下，查看仓库的分支、wiki、内容等。
@@ -678,7 +697,7 @@ func runWeb(c *cli.Context) error {
 			m.Get("/stars", repo.Stars)
 			m.Get("/watchers", repo.Watchers)
 
-		}, ignSignIn, context.RepoAssignment())
+		}, ignSignIn, context.NavAssignment())
 
 		// for test
 		// m.Get("/erik/webstack", func(c *context.Context) {
