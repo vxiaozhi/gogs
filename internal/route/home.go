@@ -16,7 +16,6 @@ import (
 	"gogs.io/gogs/internal/conf"
 	"gogs.io/gogs/internal/context"
 	"gogs.io/gogs/internal/database"
-	"gogs.io/gogs/internal/route/user"
 )
 
 const (
@@ -27,22 +26,24 @@ const (
 )
 
 func Home(c *context.Context) {
-	if c.IsLogged {
-		if !c.User.IsActive && conf.Auth.RequireEmailConfirmation {
-			c.Data["Title"] = c.Tr("auth.active_your_account")
-			c.Success(user.ACTIVATE)
-		} else {
-			user.Dashboard(c)
-		}
-		return
-	}
+	// 无论用户是否处于登陆状态，都显示一样的主页。
+
+	// if c.IsLogged {
+	// 	if !c.User.IsActive && conf.Auth.RequireEmailConfirmation {
+	// 		c.Data["Title"] = c.Tr("auth.active_your_account")
+	// 		c.Success(user.ACTIVATE)
+	// 	} else {
+	// 		user.Dashboard(c)
+	// 	}
+	// 	return
+	// }
 
 	// Check auto-login.
-	uname := c.GetCookie(conf.Security.CookieUsername)
-	if uname != "" {
-		c.Redirect(conf.Server.Subpath + "/user/login")
-		return
-	}
+	// uname := c.GetCookie(conf.Security.CookieUsername)
+	// if uname != "" {
+	// 	c.Redirect(conf.Server.Subpath + "/user/login")
+	// 	return
+	// }
 
 	c.Data["PageIsHome"] = true
 	c.Success(HOME)

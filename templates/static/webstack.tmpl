@@ -132,13 +132,57 @@
                         </ul>
                     </li>
                 </ul>
+
                 <ul class="user-info-menu right-links list-inline list-unstyled">
+                
                     <li class="hidden-sm hidden-xs">
-                        <a href="https://github.com/WebStackPage/WebStackPage.github.io" target="_blank">
-                            <i class="fa-github"></i>  GitHub
+                        <a href="{{AppSubURL}}">
+                            <i class="fa-github"></i>  Home
                         </a>
                     </li>
+                      <li class="hidden-sm hidden-xs">
+                        <a href="{{AppSubURL}}/repo/fork/{{.ID}}" >
+                            <i class="fa-github"></i>  fork
+                        </a>
+                    </li>
+
+                {{if .IsLogged}}
+                
+                     <li class="dropdown hover-line language-switcher">
+                        <a href="../cn/index.html" class="dropdown-toggle" data-toggle="dropdown">
+                            <img src="/static/webstack/assets/images/flags/flag-cn.png" alt="flag-cn" /> Chinese
+                        </a>
+                        <ul class="dropdown-menu languages">
+                            <li>
+                                <a href="{{AppSubURL}}/{{.LoggedUser.Name}}/navprofile">
+                                    Your Nav Profile
+                                </a>
+                            </li>
+                            <li class="active">
+                                <a href="{{AppSubURL}}/user/settings">
+                                    Your Settings
+                                </a>
+                            </li>
+                             
+                        </ul>
+                    </li>
+                
+                {{else}}
+                   
+                    <li class="hidden-sm hidden-xs">
+                        <a href="{{AppSubURL}}/user/login?redirect_to={{.Link}}" >
+                            <i class="fa-github"></i>  SignIn
+                        </a>
+                    </li>
+                    <li class="hidden-sm hidden-xs">
+                        <a href="{{AppSubURL}}/user/sign_up" >
+                            <i class="fa-github"></i>  SignUp
+                        </a>
+                    </li>
+              
+                {{end}}
                 </ul>
+              
                 <!-- <a href="https://github.com/WebStackPage/WebStackPage.github.io" target="_blank"><img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"></a> -->
 
             </nav>
