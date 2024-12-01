@@ -364,6 +364,15 @@ func runWeb(c *cli.Context) error {
 			m.Post("/releases/attachments", repo.UploadReleaseAttachment)
 		}, ignSignIn)
 
+		// 用户导航信息列表profile
+		m.Group("", func() {
+			m.Group("/:username", func() {
+				m.Get("/navprofile", user.NavProfile)
+			})
+		}, reqSignIn, context.InjectParamsUser(), func(c *context.Context) {
+			log.Info("navprofile, data:%v", c.Data)
+		})
+
 		// 关注用户（follow）/ 取消关注(unfollow)
 		m.Group("/:username", func() {
 			m.Post("/action/:action", user.Action)
@@ -516,6 +525,17 @@ func runWeb(c *cli.Context) error {
 			})
 		}, reqSignIn, context.RepoAssignment(), reqRepoAdmin, context.RepoRef())
 
+		// Nav设置
+		m.Group("/:username/:reponame", func() {
+			m.Group("/navsettings", func() {
+				m.Combo("/basic").Get(repo.SettingsNav).
+					Post(bindIgnErr(form.RepoSetting{}), repo.SettingsNavPost)
+
+			}, func(c *context.Context) {
+				c.Data["PageIsSettings"] = true
+			})
+		}, reqSignIn, context.NavAssignment(), reqRepoAdmin)
+
 		// 对仓库action的操作，包括（关注/取消关注/点赞/取消点赞）
 		m.Post("/:username/:reponame/action/:action", reqSignIn, context.RepoAssignment(), repo.Action)
 		// 未登录情况下，查看仓库的 工单、标签、里程碑信息。
@@ -627,14 +647,18 @@ func runWeb(c *cli.Context) error {
 				c.Data["PageIsViewFiles"] = true
 			})
 
+		}, reqSignIn, context.RepoAssignment())
+
+		// nav 内容等的增删改查。
+		m.Group("/:username/:reponame", func() {
 			m.Group("", func() {
 				// 对仓库文件内容进行编辑, 更新内容保存至db字段。
-				m.Combo("/_editd/:field").Get(repo.EditField).
-					Post(bindIgnErr(form.EditRepoFile{}), repo.EditFilePost)
-				m.Post("/_previewd/*", bindIgnErr(form.EditPreviewDiff{}), repo.DiffPreviewPost)
+				m.Combo("/_editnav/:field").Get(repo.EditField).
+					Post(bindIgnErr(form.EditNavContent{}), repo.EditNavContentPost)
+				m.Post("/_previewnav/*", bindIgnErr(form.EditPreviewDiff{}), repo.DiffPreviewPost)
 
 			}, reqRepoWriter)
-		}, reqSignIn, context.RepoAssignment())
+		}, reqSignIn, context.NavAssignment())
 
 		// 未登录情况下，查看仓库的分支、wiki、内容等。
 		m.Group("/:username/:reponame", func() {

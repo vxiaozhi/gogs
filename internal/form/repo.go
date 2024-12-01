@@ -362,6 +362,10 @@ type EditRepoFile struct {
 	LastCommit    string
 }
 
+type EditNavContent struct {
+	Content string `binding:"Required"`
+}
+
 func (f *EditRepoFile) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

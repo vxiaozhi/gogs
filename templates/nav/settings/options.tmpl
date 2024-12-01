@@ -1,0 +1,259 @@
+{{template "base/head" .}}
+<div class="repository settings options">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "nav/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "base/alert" .}}
+				<div class="ui top attached header">
+					{{.i18n.Tr "repo.settings.basic_settings"}}
+				</div>
+				<div class="ui attached segment">
+					<form class="ui form" action="{{.Link}}" method="POST">
+						{{.CSRFTokenHTML}}
+						<input type="hidden" name="action" value="update">
+						<div class="required field {{if .Err_RepoName}}error{{end}}">
+							<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}<span class="text red hide" id="repo-name-change-prompt"> {{.i18n.Tr "repo.settings.change_reponame_prompt"}}</span></label>
+							<input id="repo_name" name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
+						</div>
+						<div class="field {{if .Err_Description}}error{{end}}">
+							<label for="description">{{$.i18n.Tr "repo.repo_desc"}}</label>
+							<textarea class="autosize" id="description" name="description" rows="3">{{.Repository.Description}}</textarea>
+							<p class="help">{{.i18n.Tr "repo.settings.description_desc"}}</p>
+							<p class="help">{{.i18n.Tr "repo.settings.description_length"}}: <span id="descLength"></span></p>
+						</div>
+						<div class="field {{if .Err_Website}}error{{end}}">
+							<label for="website">{{.i18n.Tr "repo.settings.site"}}</label>
+							<input id="website" name="website" type="url" value="{{.Repository.Website}}">
+						</div>
+
+						{{if not .Repository.IsFork}}
+							<div class="inline field">
+								<label>{{.i18n.Tr "repo.visibility"}}</label>
+							<div class="ui segment">
+								<div class="field">
+									<div class="ui checkbox">
+										<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
+										<label>{{.i18n.Tr "repo.visiblity_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visiblity_fork_helper"}}</span>{{end}}</label>
+									</div>
+								</div>
+								<div class="field">
+									<div class="ui checkbox">
+										<input name="unlisted" type="checkbox" {{if .Repository.IsUnlisted}}checked{{end}}>
+										<label>{{.i18n.Tr "repo.unlisted_helper" | Safe}} {{if .Repository.NumForks}}<span class="text red">{{.i18n.Tr "repo.visiblity_fork_helper"}}</span>{{end}}</label>
+									</div>
+								</div>
+							</div>
+							</div>
+						{{end}}
+
+						<div class="field">
+							<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+						</div>
+					</form>
+
+					<div class="ui divider"></div>
+
+					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+						{{.CSRFTokenHTML}}
+						<div class="inline field">
+							<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+							<input name="avatar" type="file" >
+						</div>
+						<div class="field">
+							<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
+							<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+						</div>
+					</form>
+				</div>
+
+				{{if .Repository.IsMirror}}
+					<div class="ui top attached header">
+						{{.i18n.Tr "repo.settings.mirror_settings"}}
+					</div>
+					<div class="ui attached segment">
+						<form class="ui form" method="POST">
+							{{.CSRFTokenHTML}}
+							<input type="hidden" name="action" value="mirror">
+							<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
+							  <label>{{.i18n.Tr "repo.mirror_prune"}}</label>
+								<div class="ui checkbox">
+					        <input id="enable_prune" name="enable_prune" type="checkbox" {{if .MirrorEnablePrune}}checked{{end}}>
+					        <label>{{.i18n.Tr "repo.mirror_prune_desc"}}</label>
+								</div>
+							</div>
+							<div class="inline field {{if .Err_Interval}}error{{end}}">
+								<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+								<input id="interval" name="interval" type="number" value="{{.MirrorInterval}}">
+							</div>
+							<div class="field">
+								<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
+								<input id="mirror_address" name="mirror_address" value="{{.Mirror.RawAddress}}" required>
+								<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
+							</div>
+
+							<div class="field">
+								<button class="ui green button">{{$.i18n.Tr "repo.settings.update_settings"}}</button>
+							</div>
+						</form>
+
+						<div class="ui divider"></div>
+
+						<form class="ui form" method="POST">
+							{{.CSRFTokenHTML}}
+							<input type="hidden" name="action" value="mirror-sync">
+							<div class="inline field">
+								<label>{{.i18n.Tr "repo.mirror_last_synced"}}</label>
+								<span>{{.Mirror.LastSync}}</span>
+							</div>
+							<div class="field">
+								<button class="ui blue button">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+							</div>
+						</form>
+					</div>
+				{{end}}
+
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+{{if .IsRepositoryOwner}}
+	{{if .Repository.IsMirror}}
+	<div class="ui small modal" id="convert-repo-modal">
+		<div class="header">
+			{{.i18n.Tr "repo.settings.convert"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message text left">
+				{{.i18n.Tr "repo.settings.convert_notices_1" | Safe}}
+			</div>
+			<form class="ui form" action="{{.Link}}" method="POST">
+				{{.CSRFTokenHTML}}
+				<input type="hidden" name="action" value="convert">
+				<div class="field">
+					<label>
+						{{.i18n.Tr "repo.settings.transfer_form_title"}}
+						<span class="text red">{{.Repository.Name}}</span>
+					</label>
+				</div>
+				<div class="required field">
+					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" required>
+				</div>
+
+				<div class="text right actions">
+					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{.i18n.Tr "repo.settings.convert_confirm"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{{end}}
+
+	<div class="ui small modal" id="transfer-repo-modal">
+		<div class="header">
+			{{.i18n.Tr "repo.settings.transfer"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message text left">
+				{{.i18n.Tr "repo.settings.transfer_notices_1" | Safe}} <br>
+				{{.i18n.Tr "repo.settings.transfer_notices_2" | Safe}}
+			</div>
+			<form class="ui form" action="{{.Link}}" method="POST">
+				{{.CSRFTokenHTML}}
+				<input type="hidden" name="action" value="transfer">
+				<div class="field">
+					<label>
+						{{.i18n.Tr "repo.settings.transfer_form_title"}}
+						<span class="text red">{{.Repository.Name}}</span>
+					</label>
+				</div>
+				<div class="required field">
+					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" autocomplete="off" required>
+				</div>
+				<div class="required field">
+					<label for="new_owner_name">{{.i18n.Tr "repo.settings.transfer_owner"}}</label>
+					<input id="new_owner_name" name="new_owner_name" autocomplete="off" required>
+				</div>
+
+				<div class="text right actions">
+					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{.i18n.Tr "repo.settings.make_transfer"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<div class="ui small modal" id="delete-repo-modal">
+		<div class="header">
+			{{.i18n.Tr "repo.settings.delete"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message text left">
+				{{.i18n.Tr "repo.settings.delete_notices_1" | Safe}}<br>
+				{{.i18n.Tr "repo.settings.delete_notices_2" | Safe}}
+				{{if .Repository.NumForks}}<br>
+				{{.i18n.Tr "repo.settings.delete_notices_fork_1" | Safe}}
+				{{end}}
+			</div>
+			<form class="ui form" action="{{.Link}}" method="POST">
+				{{.CSRFTokenHTML}}
+				<input type="hidden" name="action" value="delete">
+				<div class="field">
+					<label>
+						{{.i18n.Tr "repo.settings.transfer_form_title"}}
+						<span class="text red">{{.Repository.Name}}</span>
+					</label>
+				</div>
+				<div class="required field">
+					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" autocomplete="off" required>
+				</div>
+
+				<div class="text right actions">
+					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{.i18n.Tr "repo.settings.confirm_delete"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	{{if .Repository.EnableWiki}}
+	<div class="ui small modal" id="delete-wiki-modal">
+		<div class="header">
+			{{.i18n.Tr "repo.settings.wiki-delete"}}
+		</div>
+		<div class="content">
+			<div class="ui warning message text left">
+				{{.i18n.Tr "repo.settings.delete_notices_1" | Safe}}<br>
+				{{.i18n.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name | Safe}}
+			</div>
+			<form class="ui form" action="{{.Link}}" method="POST">
+				{{.CSRFTokenHTML}}
+				<input type="hidden" name="action" value="delete-wiki">
+				<div class="field">
+					<label>
+						{{.i18n.Tr "repo.settings.transfer_form_title"}}
+						<span class="text red">{{.Repository.Name}}</span>
+					</label>
+				</div>
+				<div class="required field">
+					<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
+					<input id="repo_name" name="repo_name" autocomplete="off" required>
+				</div>
+
+				<div class="text right actions">
+					<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
+					<button class="ui red button">{{.i18n.Tr "repo.settings.confirm_delete"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+	{{end}}
+{{end}}
+
+{{template "base/footer" .}}

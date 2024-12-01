@@ -28,6 +28,8 @@ const (
 	tmplEditorDiffPreview = "repo/editor/diff_preview"
 	tmplEditorDelete      = "repo/editor/delete"
 	tmplEditorUpload      = "repo/editor/upload"
+
+	navTmplEditorEdit = "nav/editor/edit"
 )
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
@@ -142,7 +144,7 @@ func EditField(c *context.Context) {
 		c.Data["FileContent"] = content
 	}
 
-	c.Data["ParentTreePath"] = path.Dir(c.Repo.TreePath)
+	//c.Data["ParentTreePath"] = path.Dir(c.Repo.TreePath)
 	c.Data["TreeNames"] = "treeNames"
 	c.Data["TreePaths"] = "treePaths"
 	c.Data["BranchLink"] = "branchlink"
@@ -150,13 +152,11 @@ func EditField(c *context.Context) {
 	c.Data["commit_message"] = ""
 	c.Data["commit_choice"] = "direct"
 	c.Data["new_branch_name"] = ""
-	c.Data["last_commit"] = c.Repo.Commit.ID
+	//c.Data["last_commit"] = c.Repo.Commit.ID
 	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
 	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
 	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
-	c.Data["EditorconfigURLPrefix"] = fmt.Sprintf("%s/api/v1/repos/%s/editorconfig/", conf.Server.Subpath, c.Repo.Repository.FullName())
-
-	c.Success(tmplEditorEdit)
+	c.Success(navTmplEditorEdit)
 }
 
 func EditFile(c *context.Context) {
@@ -339,6 +339,31 @@ func NewFilePost(c *context.Context, f form.EditRepoFile) {
 	editFilePost(c, f, true)
 }
 
+func EditNavContentPost(c *context.Context, f form.EditNavContent) {
+	c.PageIs("Edit")
+	c.RequireHighlightJS()
+	c.RequireSimpleMDE()
+	c.Data["IsNewFile"] = false
+
+	c.Data["FileContent"] = f.Content
+	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
+	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
+	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
+
+	if c.HasError() {
+		c.Success(tmplEditorEdit)
+		return
+	}
+	repo := c.Repo.Repository
+	repo.Content = f.Content
+	if err := database.UpdateRepository(repo, false); err != nil {
+		c.Error(err, "update repository")
+		return
+	}
+	log.Trace("Repository content updated: %s/%s", c.Repo.Owner.Name, repo.Name)
+	c.Redirect(conf.Server.Subpath + "/" + c.User.Name + "/" + repo.Name)
+
+}
 func DiffPreviewPost(c *context.Context, f form.EditPreviewDiff) {
 	treePath := c.Repo.TreePath
 

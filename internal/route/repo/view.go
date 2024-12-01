@@ -316,9 +316,9 @@ func NavHome(c *context.Context) {
 
 	// 查询 仓库对应 的模板名称、数据内容等
 	template_name := c.Repo.Repository.TemplateName
-	site_data_list, _ := staticsite.GetSiteDataTmpl(staticsite.Site_data_list)
-	c.Data["SiteDataTmpl"] = site_data_list
-	//c.Data["SiteDataTmpl"] = staticsite.GetSiteDataTmpl(c.Repo.Repository.Content)
+	//site_data_list, _ := staticsite.GetSiteDataTmpl(staticsite.Site_data_list)
+	//c.Data["SiteDataTmpl"] = site_data_list
+	c.Data["SiteDataTmpl"], _ = staticsite.GetSiteDataTmpl(c.Repo.Repository.Content)
 	c.Success(fmt.Sprintf("static/%s", template_name))
 }
 func RenderUserCards(c *context.Context, total int, getter func(page int) ([]*database.User, error), tpl string) {

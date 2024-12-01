@@ -148,6 +148,9 @@
 												<a class="item" href="{{AppSubURL}}/{{.LoggedUser.Name}}">
 													<i class="octicon octicon-person"></i> {{.i18n.Tr "your_profile"}}
 												</a>
+												<a class="item" href="{{AppSubURL}}/{{.LoggedUser.Name}}/navprofile">
+													<i class="octicon octicon-person"></i> {{.i18n.Tr "your_profile"}}_nav
+												</a>
 												<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubURL}}/user/settings">
 													<i class="octicon octicon-settings"></i> {{.i18n.Tr "your_settings"}}
 												</a>

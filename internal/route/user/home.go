@@ -18,11 +18,12 @@ import (
 )
 
 const (
-	DASHBOARD = "user/dashboard/dashboard"
-	NEWS_FEED = "user/dashboard/feeds"
-	ISSUES    = "user/dashboard/issues"
-	PROFILE   = "user/profile"
-	ORG_HOME  = "org/home"
+	DASHBOARD  = "user/dashboard/dashboard"
+	NEWS_FEED  = "user/dashboard/feeds"
+	ISSUES     = "user/dashboard/issues"
+	PROFILE    = "user/profile"
+	NAVPROFILE = "user/navprofile"
+	ORG_HOME   = "org/home"
 )
 
 // getDashboardContextUser finds out dashboard is viewing as which context user.

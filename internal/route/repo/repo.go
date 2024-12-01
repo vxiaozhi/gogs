@@ -178,7 +178,8 @@ func CreateNavPost(c *context.Context, f form.CreateRepo) {
 	})
 	if err == nil {
 		log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-		c.Redirect(conf.Server.Subpath + "/" + ctxUser.Name + "/" + repo.Name)
+		//c.Redirect(conf.Server.Subpath + "/" + ctxUser.Name + "/" + repo.Name)
+		c.Redirect(conf.Server.Subpath + "/" + ctxUser.Name + "/" + repo.Name + "/_editnav/content")
 		return
 	}
 

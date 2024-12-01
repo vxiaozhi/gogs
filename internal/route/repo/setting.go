@@ -34,6 +34,7 @@ const (
 	SETTINGS_GITHOOKS         = "repo/settings/githooks"
 	SETTINGS_GITHOOK_EDIT     = "repo/settings/githook_edit"
 	SETTINGS_DEPLOY_KEYS      = "repo/settings/deploy_keys"
+	SETTINGS_NAV_OPTIONS      = "nav/settings/options"
 )
 
 func Settings(c *context.Context) {
@@ -41,6 +42,272 @@ func Settings(c *context.Context) {
 	c.PageIs("SettingsOptions")
 	c.RequireAutosize()
 	c.Success(SETTINGS_OPTIONS)
+}
+
+func SettingsNav(c *context.Context) {
+	c.Title("repo.settings")
+	c.PageIs("SettingsOptions")
+	c.RequireAutosize()
+	c.Success(SETTINGS_NAV_OPTIONS)
+}
+
+func SettingsNavPost(c *context.Context, f form.RepoSetting) {
+	c.Title("repo.settings")
+	c.PageIs("SettingsOptions")
+	c.RequireAutosize()
+
+	repo := c.Repo.Repository
+
+	switch c.Query("action") {
+	case "update":
+		if c.HasError() {
+			c.Success(SETTINGS_OPTIONS)
+			return
+		}
+
+		isNameChanged := false
+		oldRepoName := repo.Name
+		newRepoName := f.RepoName
+		// Check if repository name has been changed.
+		if repo.LowerName != strings.ToLower(newRepoName) {
+			isNameChanged = true
+			if err := database.ChangeRepositoryName(c.Repo.Owner, repo.Name, newRepoName); err != nil {
+				c.FormErr("RepoName")
+				switch {
+				case database.IsErrRepoAlreadyExist(err):
+					c.RenderWithErr(c.Tr("form.repo_name_been_taken"), SETTINGS_OPTIONS, &f)
+				case database.IsErrNameNotAllowed(err):
+					c.RenderWithErr(c.Tr("repo.form.name_not_allowed", err.(database.ErrNameNotAllowed).Value()), SETTINGS_OPTIONS, &f)
+				default:
+					c.Error(err, "change repository name")
+				}
+				return
+			}
+
+			log.Trace("Repository name changed: %s/%s -> %s", c.Repo.Owner.Name, repo.Name, newRepoName)
+		}
+		// In case it's just a case change.
+		repo.Name = newRepoName
+		repo.LowerName = strings.ToLower(newRepoName)
+
+		repo.Description = f.Description
+		repo.Website = f.Website
+
+		// Visibility of forked repository is forced sync with base repository.
+		if repo.IsFork {
+			f.Private = repo.BaseRepo.IsPrivate
+			f.Unlisted = repo.BaseRepo.IsUnlisted
+		}
+
+		visibilityChanged := repo.IsPrivate != f.Private || repo.IsUnlisted != f.Unlisted
+		repo.IsPrivate = f.Private
+		repo.IsUnlisted = f.Unlisted
+		if err := database.UpdateRepository(repo, visibilityChanged); err != nil {
+			c.Error(err, "update repository")
+			return
+		}
+		log.Trace("Repository basic settings updated: %s/%s", c.Repo.Owner.Name, repo.Name)
+
+		if isNameChanged {
+			if err := database.Handle.Actions().RenameRepo(c.Req.Context(), c.User, repo.MustOwner(), oldRepoName, repo); err != nil {
+				log.Error("create rename repository action: %v", err)
+			}
+		}
+
+		c.Flash.Success(c.Tr("repo.settings.update_settings_success"))
+		c.Redirect(repo.Link() + "/settings")
+
+	case "mirror":
+		if !repo.IsMirror {
+			c.NotFound()
+			return
+		}
+
+		if f.Interval > 0 {
+			c.Repo.Mirror.EnablePrune = f.EnablePrune
+			c.Repo.Mirror.Interval = f.Interval
+			c.Repo.Mirror.NextSync = time.Now().Add(time.Duration(f.Interval) * time.Hour)
+			if err := database.UpdateMirror(c.Repo.Mirror); err != nil {
+				c.Error(err, "update mirror")
+				return
+			}
+		}
+		if err := c.Repo.Mirror.SaveAddress(f.MirrorAddress); err != nil {
+			c.Error(err, "save address")
+			return
+		}
+
+		c.Flash.Success(c.Tr("repo.settings.update_settings_success"))
+		c.Redirect(repo.Link() + "/settings")
+
+	case "mirror-sync":
+		if !repo.IsMirror {
+			c.NotFound()
+			return
+		}
+
+		go database.MirrorQueue.Add(repo.ID)
+		c.Flash.Info(c.Tr("repo.settings.mirror_sync_in_progress"))
+		c.Redirect(repo.Link() + "/settings")
+
+	case "advanced":
+		repo.EnableWiki = f.EnableWiki
+		repo.AllowPublicWiki = f.AllowPublicWiki
+		repo.EnableExternalWiki = f.EnableExternalWiki
+		repo.ExternalWikiURL = f.ExternalWikiURL
+		repo.EnableIssues = f.EnableIssues
+		repo.AllowPublicIssues = f.AllowPublicIssues
+		repo.EnableExternalTracker = f.EnableExternalTracker
+		repo.ExternalTrackerURL = f.ExternalTrackerURL
+		repo.ExternalTrackerFormat = f.TrackerURLFormat
+		repo.ExternalTrackerStyle = f.TrackerIssueStyle
+		repo.EnablePulls = f.EnablePulls
+		repo.PullsIgnoreWhitespace = f.PullsIgnoreWhitespace
+		repo.PullsAllowRebase = f.PullsAllowRebase
+
+		if !repo.EnableWiki || repo.EnableExternalWiki {
+			repo.AllowPublicWiki = false
+		}
+		if !repo.EnableIssues || repo.EnableExternalTracker {
+			repo.AllowPublicIssues = false
+		}
+
+		if err := database.UpdateRepository(repo, false); err != nil {
+			c.Error(err, "update repository")
+			return
+		}
+		log.Trace("Repository advanced settings updated: %s/%s", c.Repo.Owner.Name, repo.Name)
+
+		c.Flash.Success(c.Tr("repo.settings.update_settings_success"))
+		c.Redirect(c.Repo.RepoLink + "/settings")
+
+	case "convert":
+		if !c.Repo.IsOwner() {
+			c.NotFound()
+			return
+		}
+		if repo.Name != f.RepoName {
+			c.RenderWithErr(c.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			return
+		}
+
+		if c.Repo.Owner.IsOrganization() {
+			if !c.Repo.Owner.IsOwnedBy(c.User.ID) {
+				c.NotFound()
+				return
+			}
+		}
+
+		if !repo.IsMirror {
+			c.NotFound()
+			return
+		}
+		repo.IsMirror = false
+
+		if _, err := database.CleanUpMigrateInfo(repo); err != nil {
+			c.Error(err, "clean up migrate info")
+			return
+		} else if err = database.DeleteMirrorByRepoID(c.Repo.Repository.ID); err != nil {
+			c.Error(err, "delete mirror by repository ID")
+			return
+		}
+		log.Trace("Repository converted from mirror to regular: %s/%s", c.Repo.Owner.Name, repo.Name)
+		c.Flash.Success(c.Tr("repo.settings.convert_succeed"))
+		c.Redirect(conf.Server.Subpath + "/" + c.Repo.Owner.Name + "/" + repo.Name)
+
+	case "transfer":
+		if !c.Repo.IsOwner() {
+			c.NotFound()
+			return
+		}
+		if repo.Name != f.RepoName {
+			c.RenderWithErr(c.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			return
+		}
+
+		if c.Repo.Owner.IsOrganization() && !c.User.IsAdmin {
+			if !c.Repo.Owner.IsOwnedBy(c.User.ID) {
+				c.NotFound()
+				return
+			}
+		}
+
+		newOwner := c.Query("new_owner_name")
+		if !database.Handle.Users().IsUsernameUsed(c.Req.Context(), newOwner, c.Repo.Owner.ID) {
+			c.RenderWithErr(c.Tr("form.enterred_invalid_owner_name"), SETTINGS_OPTIONS, nil)
+			return
+		}
+
+		if err := database.TransferOwnership(c.User, newOwner, repo); err != nil {
+			if database.IsErrRepoAlreadyExist(err) {
+				c.RenderWithErr(c.Tr("repo.settings.new_owner_has_same_repo"), SETTINGS_OPTIONS, nil)
+			} else {
+				c.Error(err, "transfer ownership")
+			}
+			return
+		}
+		log.Trace("Repository transferred: %s/%s -> %s", c.Repo.Owner.Name, repo.Name, newOwner)
+		c.Flash.Success(c.Tr("repo.settings.transfer_succeed"))
+		c.Redirect(conf.Server.Subpath + "/" + newOwner + "/" + repo.Name)
+
+	case "delete":
+		if !c.Repo.IsOwner() {
+			c.NotFound()
+			return
+		}
+		if repo.Name != f.RepoName {
+			c.RenderWithErr(c.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			return
+		}
+
+		if c.Repo.Owner.IsOrganization() && !c.User.IsAdmin {
+			if !c.Repo.Owner.IsOwnedBy(c.User.ID) {
+				c.NotFound()
+				return
+			}
+		}
+
+		if err := database.DeleteRepository(c.Repo.Owner.ID, repo.ID); err != nil {
+			c.Error(err, "delete repository")
+			return
+		}
+		log.Trace("Repository deleted: %s/%s", c.Repo.Owner.Name, repo.Name)
+
+		c.Flash.Success(c.Tr("repo.settings.deletion_success"))
+		c.Redirect(userutil.DashboardURLPath(c.Repo.Owner.Name, c.Repo.Owner.IsOrganization()))
+
+	case "delete-wiki":
+		if !c.Repo.IsOwner() {
+			c.NotFound()
+			return
+		}
+		if repo.Name != f.RepoName {
+			c.RenderWithErr(c.Tr("form.enterred_invalid_repo_name"), SETTINGS_OPTIONS, nil)
+			return
+		}
+
+		if c.Repo.Owner.IsOrganization() && !c.User.IsAdmin {
+			if !c.Repo.Owner.IsOwnedBy(c.User.ID) {
+				c.NotFound()
+				return
+			}
+		}
+
+		repo.DeleteWiki()
+		log.Trace("Repository wiki deleted: %s/%s", c.Repo.Owner.Name, repo.Name)
+
+		repo.EnableWiki = false
+		if err := database.UpdateRepository(repo, false); err != nil {
+			c.Error(err, "update repository")
+			return
+		}
+
+		c.Flash.Success(c.Tr("repo.settings.wiki_deletion_success"))
+		c.Redirect(c.Repo.RepoLink + "/settings")
+
+	default:
+		c.NotFound()
+	}
 }
 
 func SettingsPost(c *context.Context, f form.RepoSetting) {
