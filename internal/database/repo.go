@@ -2689,6 +2689,52 @@ func ForkRepository(doer, owner *User, baseRepo *Repository, name, desc string) 
 	return repo, nil
 }
 
+// ForkNav creates a fork of target nav under another user domain.
+func ForkNav(doer, owner *User, baseRepo *Repository, name, desc string) (_ *Repository, err error) {
+	if !owner.canCreateRepo() {
+		return nil, ErrReachLimitOfRepo{Limit: owner.maxNumRepos()}
+	}
+
+	repo := &Repository{
+		OwnerID:       owner.ID,
+		Owner:         owner,
+		Name:          name,
+		LowerName:     strings.ToLower(name),
+		Description:   desc,
+		Content:       baseRepo.Content,
+		TemplateName:  baseRepo.TemplateName,
+		DefaultBranch: baseRepo.DefaultBranch,
+		IsPrivate:     baseRepo.IsPrivate,
+		IsUnlisted:    baseRepo.IsUnlisted,
+		IsFork:        true,
+		ForkID:        baseRepo.ID,
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return nil, err
+	}
+
+	if err = createRepository(sess, doer, owner, repo); err != nil {
+		return nil, err
+	} else if _, err = sess.Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", baseRepo.ID); err != nil {
+		return nil, err
+	}
+
+	if err = sess.Commit(); err != nil {
+		return nil, fmt.Errorf("Commit: %v", err)
+	}
+
+	// Remember visibility preference
+	err = Handle.Users().Update(context.TODO(), owner.ID, UpdateUserOptions{LastRepoVisibility: &repo.IsPrivate})
+	if err != nil {
+		return nil, errors.Wrap(err, "update user")
+	}
+
+	return repo, nil
+}
+
 func (repo *Repository) GetForks() ([]*Repository, error) {
 	forks := make([]*Repository, 0, repo.NumForks)
 	if err := x.Find(&forks, &Repository{ForkID: repo.ID}); err != nil {

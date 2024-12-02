@@ -471,8 +471,8 @@ func runWeb(c *cli.Context) error {
 			m.Post("/create", bindIgnErr(form.CreateRepo{}), repo.CreateNavPost)
 
 			// 从已有导航页 fork 新导航
-			m.Combo("/fork/:repoid").Get(repo.Fork).
-				Post(bindIgnErr(form.CreateRepo{}), repo.ForkPost)
+			m.Combo("/fork/:repoid").Get(repo.ForkNav).
+				Post(bindIgnErr(form.ForkNav{}), repo.ForkNavPost)
 		}, reqSignIn)
 
 		// 仓库设置

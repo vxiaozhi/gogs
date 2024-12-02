@@ -37,6 +37,18 @@ type CreateRepo struct {
 	Readme      string
 }
 
+type ForkNav struct {
+	UserID      int64  `binding:"Required"`
+	RepoName    string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Private     bool
+	Unlisted    bool
+	Description string `binding:"MaxSize(512)"`
+	AutoInit    bool
+	Gitignores  string
+	License     string
+	Readme      string
+}
+
 func (f *CreateRepo) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }

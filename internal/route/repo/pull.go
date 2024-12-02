@@ -97,6 +97,18 @@ func Fork(c *context.Context) {
 	c.Success(FORK)
 }
 
+func ForkNav(c *context.Context) {
+	c.Data["Title"] = c.Tr("new_fork")
+
+	parseBaseRepository(c)
+	if c.Written() {
+		return
+	}
+
+	c.Data["ContextUser"] = c.User
+	c.Success(FORK)
+}
+
 func ForkPost(c *context.Context, f form.CreateRepo) {
 	c.Data["Title"] = c.Tr("new_fork")
 
@@ -138,6 +150,66 @@ func ForkPost(c *context.Context, f form.CreateRepo) {
 	}
 
 	repo, err = database.ForkRepository(c.User, ctxUser, baseRepo, f.RepoName, f.Description)
+	if err != nil {
+		c.Data["Err_RepoName"] = true
+		switch {
+		case database.IsErrReachLimitOfRepo(err):
+			c.RenderWithErr(c.Tr("repo.form.reach_limit_of_creation", err.(database.ErrReachLimitOfRepo).Limit), FORK, &f)
+		case database.IsErrRepoAlreadyExist(err):
+			c.RenderWithErr(c.Tr("repo.settings.new_owner_has_same_repo"), FORK, &f)
+		case database.IsErrNameNotAllowed(err):
+			c.RenderWithErr(c.Tr("repo.form.name_not_allowed", err.(database.ErrNameNotAllowed).Value()), FORK, &f)
+		default:
+			c.Error(err, "fork repository")
+		}
+		return
+	}
+
+	log.Trace("Repository forked from '%s' -> '%s'", baseRepo.FullName(), repo.FullName())
+	c.Redirect(repo.Link())
+}
+
+func ForkNavPost(c *context.Context, f form.ForkNav) {
+	c.Data["Title"] = c.Tr("new_fork")
+
+	baseRepo := parseBaseRepository(c)
+	if c.Written() {
+		return
+	}
+
+	ctxUser := checkContextUser(c, f.UserID)
+	if c.Written() {
+		return
+	}
+	c.Data["ContextUser"] = ctxUser
+
+	if c.HasError() {
+		c.Success(FORK)
+		return
+	}
+
+	repo, has, err := database.HasForkedRepo(ctxUser.ID, baseRepo.ID)
+	if err != nil {
+		c.Error(err, "check forked repository")
+		return
+	} else if has {
+		c.Redirect(repo.Link())
+		return
+	}
+
+	// Check ownership of organization.
+	if ctxUser.IsOrganization() && !ctxUser.IsOwnedBy(c.User.ID) {
+		c.Status(http.StatusForbidden)
+		return
+	}
+
+	// Cannot fork to same owner
+	if ctxUser.ID == baseRepo.OwnerID {
+		c.RenderWithErr(c.Tr("repo.settings.cannot_fork_to_same_owner"), FORK, &f)
+		return
+	}
+
+	repo, err = database.ForkNav(c.User, ctxUser, baseRepo, f.RepoName, f.Description)
 	if err != nil {
 		c.Data["Err_RepoName"] = true
 		switch {
