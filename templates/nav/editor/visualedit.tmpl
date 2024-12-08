@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-hans">
+
+<head>
+    <meta charset="UTF-8"/>
+    <title>goAmis</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/amis@3.6.3/sdk/sdk.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/amis@3.6.3/sdk/helper.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/amis@3.6.3/sdk/iconfont.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/amis@3.6.3/sdk/sdk.js"></script>
+    <style>
+        html,
+        body,
+        .app-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="root" class="app-wrapper"></div>
+<script type="text/javascript">
+    (function () {
+        const amis = amisRequire('amis/embed');
+        const amisJSON = {
+		"type": "page",
+		"body": [
+			
+			{
+			"type": "form",
+			"api": "{{.CateUpdateApi}}",
+			"title": "",
+			"mode": "horizontal",
+			"wrapWithPanel": true,
+			"className": "m-t",
+			"body": [
+				{
+				"type": "combo",
+				"name": "combo_category",
+				"label": "分类",
+				"multiple": true,
+				"value": [
+				{{range $index, $element := .CataNameList}}
+					{{if eq $index 0 }}
+						{
+							"a": {{.}}
+						}
+					{{else}}
+						,{
+							"a": {{.}}
+						}
+					{{end}}
+				{{end}}
+					
+				],
+				"draggable": true,
+				"items": [
+					{
+					"name": "a",
+					"type": "input-text",
+					"placeholder": "类别名称",
+					"unique": true
+					}
+				]
+				}
+			]
+			},
+			{{range  .CataNameList}}
+			{
+			"type": "tag",
+			"label": {{.}},
+			"color": "processing"
+			},
+			{{end}}
+			{
+			"type": "divider"
+			},
+
+
+			{
+			"type": "form",
+			"api": "{{.SiteUpdateApi}}",
+			"title": "",
+			"mode": "horizontal",
+			"wrapWithPanel": true,
+			"className": "m-t",
+			"body": [
+				{
+				"type": "combo",
+				"name": "combo_sites",
+				"label": "网址",
+				"multiple": true,
+				"value": [
+				{{range $index, $element := .SiteDataTmpl.CategoryList}}
+					{{ $CateName := .Category}}
+					{{range $index_site, $element_site := .Data}}
+						{{if and (eq $index 0) (eq $index_site 0) }}
+							{
+							"title": "{{.Title}}",
+							"desc":"{{.Desc}}",
+							"site": "{{.Url}}",
+							"cata": "{{$CateName}}"
+							}
+						{{else}}
+							,{
+							"title": "{{.Title}}",
+							"desc":"{{.Desc}}",
+							"site": "{{.Url}}",
+							"cata": "{{$CateName}}"
+							}
+						{{end}}
+					{{end}}
+				{{end}}
+				],
+				"draggable": true,
+				"items": [
+					{
+					"name": "title",
+					"type": "input-text",
+					"placeholder": "title",
+					"unique": true
+					},
+					{
+					"name": "desc",
+					"type": "input-text",
+					"placeholder": "描述",
+					"unique": true
+					},
+					{
+					"name": "site",
+					"type": "input-text",
+					"placeholder": "网址",
+					"unique": true
+					},
+					{
+					"name": "cata",
+					"type": "select",
+					"placeholder": "请选择分类",
+					"options": [
+					{{- range $index, $element := .CataNameList -}}
+						{{- if eq $index 0 -}}
+							{{- . -}}
+						{{- else -}}
+							,{{- . -}}
+						{{- end -}}
+					{{- end -}}
+					],
+					"unique": false
+					}
+				]
+				}
+			]
+			}
+		],
+		"regions": [
+			"body"
+		],
+		"messages": {},
+		"className": "r b-a b-2x"
+		}
+        amis.embed('#root', amisJSON, {}, {});
+    })();
+</script>
+</body>
+
+</html>

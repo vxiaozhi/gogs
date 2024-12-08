@@ -24,6 +24,11 @@
 							<a class="name" href="{{AppSubURL}}/{{$.LoggedUserName}}/{{.Name}}/_editnav/content">
 								edit
 							</a>
+							{{if $.IsAdmin}}
+							<a class="name" href="{{AppSubURL}}/{{$.LoggedUserName}}/{{.Name}}/_admineditnav/content">
+								adminEdit
+							</a>
+							{{end}}
 							<a class="name" href="{{AppSubURL}}/{{$.LoggedUserName}}/{{.Name}}/navsettings/basic">
 								settings
 							</a>

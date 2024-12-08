@@ -341,6 +341,14 @@ type CategoryItem struct {
 	RowsData     []SiteDataRow
 }
 
+func (s *SiteDataTmpl) GetCateNameList() []string {
+	var cate_name_list []string
+	for _, v := range s.CategoryList {
+		cate_name_list = append(cate_name_list, v.Category)
+	}
+	return cate_name_list
+}
+
 const (
 	MaxUrlItemsPerRow int = 4
 )

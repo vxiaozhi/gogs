@@ -19,6 +19,7 @@ import (
 	"gogs.io/gogs/internal/form"
 	"gogs.io/gogs/internal/gitutil"
 	"gogs.io/gogs/internal/pathutil"
+	"gogs.io/gogs/internal/staticsite"
 	"gogs.io/gogs/internal/template"
 	"gogs.io/gogs/internal/tool"
 )
@@ -29,7 +30,8 @@ const (
 	tmplEditorDelete      = "repo/editor/delete"
 	tmplEditorUpload      = "repo/editor/upload"
 
-	navTmplEditorEdit = "nav/editor/edit"
+	navTmplEditorVisualEdit = "nav/editor/visualedit"
+	navTmplEditorRawEdit    = "nav/editor/edit"
 )
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths
@@ -113,7 +115,32 @@ func editFile(c *context.Context, isNewFile bool) {
 	c.Success(tmplEditorEdit)
 }
 
-func EditField(c *context.Context) {
+func EditFieldWithVisual(c *context.Context) {
+	c.PageIs("Edit")
+	c.RequireHighlightJS()
+	c.RequireSimpleMDE()
+	//c.Data["IsNewFile"] = isNewFile
+
+	fieldName := c.Params(":field")
+	if fieldName != "content" {
+		c.NotFound()
+		return
+	}
+	content := c.Data["FieldContent"].(string)
+
+	sitedata, _ := staticsite.GetSiteDataTmpl(content)
+	catename_list := sitedata.GetCateNameList()
+
+	c.Data["CataNameList"] = catename_list
+
+	c.Data["SiteDataTmpl"] = sitedata
+	c.Data["CateUpdateApi"] = "/xx/aa"
+	c.Data["SiteUpdateApi"] = "/xx/aab"
+
+	c.Success(navTmplEditorVisualEdit)
+}
+
+func EditFieldWithRaw(c *context.Context) {
 	c.PageIs("Edit")
 	c.RequireHighlightJS()
 	c.RequireSimpleMDE()
@@ -156,9 +183,8 @@ func EditField(c *context.Context) {
 	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
 	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
 	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
-	c.Success(navTmplEditorEdit)
+	c.Success(navTmplEditorRawEdit)
 }
-
 func EditFile(c *context.Context) {
 	editFile(c, false)
 }
@@ -339,7 +365,33 @@ func NewFilePost(c *context.Context, f form.EditRepoFile) {
 	editFilePost(c, f, true)
 }
 
-func EditNavContentPost(c *context.Context, f form.EditNavContent) {
+func EditNavRawContentPost(c *context.Context, f form.EditNavContent) {
+	c.PageIs("Edit")
+	c.RequireHighlightJS()
+	c.RequireSimpleMDE()
+	c.Data["IsNewFile"] = false
+
+	c.Data["FileContent"] = f.Content
+	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
+	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
+	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
+
+	if c.HasError() {
+		c.Success(tmplEditorEdit)
+		return
+	}
+	repo := c.Repo.Repository
+	repo.Content = f.Content
+	if err := database.UpdateRepository(repo, false); err != nil {
+		c.Error(err, "update repository")
+		return
+	}
+	log.Trace("Repository content updated: %s/%s", c.Repo.Owner.Name, repo.Name)
+	c.Redirect(conf.Server.Subpath + "/" + c.User.Name + "/" + repo.Name)
+
+}
+
+func EditNavVisualContentPost(c *context.Context, f form.EditNavContent) {
 	c.PageIs("Edit")
 	c.RequireHighlightJS()
 	c.RequireSimpleMDE()

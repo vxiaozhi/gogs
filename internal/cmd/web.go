@@ -653,12 +653,22 @@ func runWeb(c *cli.Context) error {
 		m.Group("/:username/:reponame", func() {
 			m.Group("", func() {
 				// 对仓库文件内容进行编辑, 更新内容保存至db字段。
-				m.Combo("/_editnav/:field").Get(repo.EditField).
-					Post(bindIgnErr(form.EditNavContent{}), repo.EditNavContentPost)
+				m.Combo("/_editnav/:field").Get(repo.EditFieldWithVisual).
+					Post(bindIgnErr(form.EditNavContent{}), repo.EditNavVisualContentPost)
 				m.Post("/_previewnav/*", bindIgnErr(form.EditPreviewDiff{}), repo.DiffPreviewPost)
 
 			}, reqRepoWriter)
 		}, reqSignIn, context.NavAssignment())
+
+		// 管理员用户可以对nav使用 json 编辑。
+		m.Group("/:username/:reponame", func() {
+			m.Group("", func() {
+				// 对仓库文件内容进行编辑, 更新内容保存至db字段。
+				m.Combo("/_admineditnav/:field").Get(repo.EditFieldWithRaw).
+					Post(bindIgnErr(form.EditNavContent{}), repo.EditNavRawContentPost)
+
+			}, reqRepoWriter)
+		}, reqSignIn, reqAdmin, context.NavAssignment())
 
 		// 未登录情况下，查看仓库的分支、wiki、内容等。
 		m.Group("/:username/:reponame", func() {
