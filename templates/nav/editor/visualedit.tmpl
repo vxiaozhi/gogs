@@ -36,7 +36,13 @@
 			
 			{
 			"type": "form",
-			"api": "{{.CateUpdateApi}}",
+			"api":{
+				"method": "post",
+				"url": "{{AppSubURL}}/{{$.LoggedUserName}}/{{.RepoName}}/_editnav/content",
+				"headers": {
+						"X-CSRF-Token": "{{.CSRFToken}}"
+					}
+				},
 			"title": "",
 			"mode": "horizontal",
 			"wrapWithPanel": true,

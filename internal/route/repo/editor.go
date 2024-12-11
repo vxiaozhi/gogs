@@ -134,7 +134,7 @@ func EditFieldWithVisual(c *context.Context) {
 	c.Data["CataNameList"] = catename_list
 
 	c.Data["SiteDataTmpl"] = sitedata
-	c.Data["CateUpdateApi"] = "/xx/aa"
+	//c.Data["CateUpdateApi"] = "/_editnav/:field"
 	c.Data["SiteUpdateApi"] = "/xx/aab"
 
 	c.Success(navTmplEditorVisualEdit)
@@ -391,29 +391,28 @@ func EditNavRawContentPost(c *context.Context, f form.EditNavContent) {
 
 }
 
-func EditNavVisualContentPost(c *context.Context, f form.EditNavContent) {
+func EditNavVisualContentPost(c *context.Context, f form.EditNavCateJsonContent) {
 	c.PageIs("Edit")
 	c.RequireHighlightJS()
 	c.RequireSimpleMDE()
 	c.Data["IsNewFile"] = false
 
-	c.Data["FileContent"] = f.Content
-	c.Data["MarkdownFileExts"] = strings.Join(conf.Markdown.FileExtensions, ",")
-	c.Data["LineWrapExtensions"] = strings.Join(conf.Repository.Editor.LineWrapExtensions, ",")
-	c.Data["PreviewableFileModes"] = strings.Join(conf.Repository.Editor.PreviewableFileModes, ",")
+	log.Trace("Edit Nav Content, post:%v", f)
 
-	if c.HasError() {
-		c.Success(tmplEditorEdit)
-		return
-	}
-	repo := c.Repo.Repository
-	repo.Content = f.Content
-	if err := database.UpdateRepository(repo, false); err != nil {
-		c.Error(err, "update repository")
-		return
-	}
-	log.Trace("Repository content updated: %s/%s", c.Repo.Owner.Name, repo.Name)
-	c.Redirect(conf.Server.Subpath + "/" + c.User.Name + "/" + repo.Name)
+	// c.Data["FileContent"] = f.Content
+
+	// if c.HasError() {
+	// 	c.Success(tmplEditorEdit)
+	// 	return
+	// }
+	// repo := c.Repo.Repository
+	// repo.Content = f.Content
+	// if err := database.UpdateRepository(repo, false); err != nil {
+	// 	c.Error(err, "update repository")
+	// 	return
+	// }
+	// log.Trace("Repository content updated: %s/%s", c.Repo.Owner.Name, repo.Name)
+	// c.Redirect(conf.Server.Subpath + "/" + c.User.Name + "/" + repo.Name)
 
 }
 func DiffPreviewPost(c *context.Context, f form.EditPreviewDiff) {

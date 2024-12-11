@@ -653,8 +653,9 @@ func runWeb(c *cli.Context) error {
 		m.Group("/:username/:reponame", func() {
 			m.Group("", func() {
 				// 对仓库文件内容进行编辑, 更新内容保存至db字段。
+				// https://baidu.github.io/amis/zh-CN/docs/types/api#%E9%85%8D%E7%BD%AE%E8%87%AA%E5%AE%9A%E4%B9%89%E8%AF%B7%E6%B1%82%E5%A4%B4?page=1?page=1
 				m.Combo("/_editnav/:field").Get(repo.EditFieldWithVisual).
-					Post(bindIgnErr(form.EditNavContent{}), repo.EditNavVisualContentPost)
+					Post(binding.Bind(form.EditNavCateJsonContent{}), repo.EditNavVisualContentPost)
 				m.Post("/_previewnav/*", bindIgnErr(form.EditPreviewDiff{}), repo.DiffPreviewPost)
 
 			}, reqRepoWriter)

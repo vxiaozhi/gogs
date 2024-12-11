@@ -374,16 +374,26 @@ type EditRepoFile struct {
 	LastCommit    string
 }
 
-type EditNavContent struct {
-	Content string `binding:"Required"`
-}
-
 func (f *EditRepoFile) Validate(ctx *macaron.Context, errs binding.Errors) binding.Errors {
 	return validate(errs, ctx.Data, f, ctx.Locale)
 }
 
 func (f *EditRepoFile) IsNewBrnach() bool {
 	return f.CommitChoice == "commit-to-new-branch"
+}
+
+type EditNavContent struct {
+	Content string `binding:"Required"`
+}
+
+type EditNavCateJsonContent struct {
+	ComboCategory []struct {
+		A string `json:"a" binding:"Required"`
+	} `json:"combo_category" binding:"Required"`
+}
+
+type EditNavSiteJsonContent struct {
+	Content string `json: "content" binding:"Required"`
 }
 
 type EditPreviewDiff struct {
