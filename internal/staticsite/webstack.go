@@ -1,14 +1,6 @@
 package staticsite
 
-import (
-	"encoding/json"
-	"fmt"
-	"strconv"
-
-	//"text/template"
-
-	log "unknwon.dev/clog/v2"
-)
+//"text/template"
 
 var Site_data_list string = `
 {
@@ -316,102 +308,93 @@ var Site_data_list string = `
 
 `
 
-type UrlItem struct {
-	Title string `json:"title"`
-	Url   string `json:"url"`
-	Img   string `json:"img"`
-	Desc  string `json:"desc"`
-}
-
-type SiteDataTmpl struct {
-	Title        string         `json:"title"`
-	Keywords     string         `json:"keywords"`
-	Description  string         `json:"description"`
-	CategoryList []CategoryItem `json:"categories"`
-}
-
-type SiteDataRow struct {
-	UrlItems []UrlItem
-}
-type CategoryItem struct {
-	Category     string `json:"category"`
-	CategoryLink string
-	IClass       string    `json:"iclass"`
-	Data         []UrlItem `json:"data"`
-	RowsData     []SiteDataRow
-}
-
-func (s *SiteDataTmpl) GetCateNameList() []string {
-	var cate_name_list []string
-	for _, v := range s.CategoryList {
-		cate_name_list = append(cate_name_list, v.Category)
-	}
-	return cate_name_list
-}
-
-const (
-	MaxUrlItemsPerRow int = 4
-)
-
-var (
-	// 随机定义一个整数值
-	CateLinkInt int = 10011112301
-)
-
-// type SiteDataTmpl struct {
-// 	Category string
-// 	//CategoryLink  template.URL
-// 	CategoryLink  string
-// 	CategoryLink2 *url.URL
-// 	IClass        string
-// 	Rows          []SiteDataRow
+// type UrlItem struct {
+// 	Title string `json:"title"`
+// 	Url   string `json:"url"`
+// 	Img   string `json:"img"`
+// 	Desc  string `json:"desc"`
 // }
 
-func GetSiteDataTmpl(site_data_content string) (SiteDataTmpl, error) {
-	var site_data_tmpl SiteDataTmpl
-	err := json.Unmarshal([]byte(site_data_content), &site_data_tmpl)
-	if err != nil {
-		log.Error("Error: %v", err)
-		return SiteDataTmpl{}, err
-	}
-	//log.Info("site_data_tmpl: %v", site_data_tmpl)
+// type SiteDataTmpl struct {
+// 	Title        string         `json:"title"`
+// 	Keywords     string         `json:"keywords"`
+// 	Description  string         `json:"description"`
+// 	CategoryList []CategoryItem `json:"categories"`
+// }
 
-	for cate_index, v := range site_data_tmpl.CategoryList {
-		//v.RowsData = []SiteDataRow{}
-		v.CategoryLink = strconv.Itoa(CateLinkInt)
-		CateLinkInt += 1
-		len := len(v.Data)
-		if len <= MaxUrlItemsPerRow {
-			//此处只能通过下标修改，否则不生效。参考：https://blog.csdn.net/qq_37102984/article/details/117850578
-			site_data_tmpl.CategoryList[cate_index].RowsData = append(v.RowsData, SiteDataRow{
-				UrlItems: v.Data,
-			})
-			//log.Info("rows_data :%v", v.RowsData)
+// type SiteDataRow struct {
+// 	UrlItems []UrlItem
+// }
+// type CategoryItem struct {
+// 	Category     string `json:"category"`
+// 	CategoryLink string
+// 	IClass       string    `json:"iclass"`
+// 	Data         []UrlItem `json:"data"`
+// 	RowsData     []SiteDataRow
+// }
 
-		} else {
-			for i := 0; i < len; i += MaxUrlItemsPerRow {
-				end := i + MaxUrlItemsPerRow
-				if end > len {
-					end = len
-				}
-				site_data_tmpl.CategoryList[cate_index].RowsData = append(site_data_tmpl.CategoryList[cate_index].RowsData, SiteDataRow{
-					UrlItems: v.Data[i:end],
-				})
-			}
-		}
+// func (s *SiteDataTmpl) GetCateNameList() []string {
+// 	var cate_name_list []string
+// 	for _, v := range s.CategoryList {
+// 		cate_name_list = append(cate_name_list, v.Category)
+// 	}
+// 	return cate_name_list
+// }
 
-		// 修正img
-		for i, v_row := range site_data_tmpl.CategoryList[cate_index].RowsData {
-			for j := range v_row.UrlItems {
-				if v_row.UrlItems[j].Img == "" {
-					img_letter := GetFirstLetter(v_row.UrlItems[j].Title)
-					site_data_tmpl.CategoryList[cate_index].RowsData[i].UrlItems[j].Img = fmt.Sprintf("/static/webstack/assets/images/letters/%s.png", img_letter)
-					//log.Info("img_base64: %s", v_row.UrlItems[j].Img)
-				}
-			}
-		}
+// const (
+// 	MaxUrlItemsPerRow int = 4
+// )
 
-	}
-	log.Info("tmpl_data_list: %v", site_data_tmpl)
-	return site_data_tmpl, nil
-}
+// var (
+// 	// 随机定义一个整数值
+// 	CateLinkInt int = 10011112301
+// )
+
+// func GetSiteDataTmpl(site_data_content string) (SiteDataTmpl, error) {
+// 	var site_data_tmpl SiteDataTmpl
+// 	err := json.Unmarshal([]byte(site_data_content), &site_data_tmpl)
+// 	if err != nil {
+// 		log.Error("Error: %v", err)
+// 		return SiteDataTmpl{}, err
+// 	}
+// 	//log.Info("site_data_tmpl: %v", site_data_tmpl)
+
+// 	for cate_index, v := range site_data_tmpl.CategoryList {
+// 		//v.RowsData = []SiteDataRow{}
+// 		v.CategoryLink = strconv.Itoa(CateLinkInt)
+// 		CateLinkInt += 1
+// 		len := len(v.Data)
+// 		if len <= MaxUrlItemsPerRow {
+// 			//此处只能通过下标修改，否则不生效。参考：https://blog.csdn.net/qq_37102984/article/details/117850578
+// 			site_data_tmpl.CategoryList[cate_index].RowsData = append(v.RowsData, SiteDataRow{
+// 				UrlItems: v.Data,
+// 			})
+// 			//log.Info("rows_data :%v", v.RowsData)
+
+// 		} else {
+// 			for i := 0; i < len; i += MaxUrlItemsPerRow {
+// 				end := i + MaxUrlItemsPerRow
+// 				if end > len {
+// 					end = len
+// 				}
+// 				site_data_tmpl.CategoryList[cate_index].RowsData = append(site_data_tmpl.CategoryList[cate_index].RowsData, SiteDataRow{
+// 					UrlItems: v.Data[i:end],
+// 				})
+// 			}
+// 		}
+
+// 		// 修正img
+// 		for i, v_row := range site_data_tmpl.CategoryList[cate_index].RowsData {
+// 			for j := range v_row.UrlItems {
+// 				if v_row.UrlItems[j].Img == "" {
+// 					img_letter := GetFirstLetter(v_row.UrlItems[j].Title)
+// 					site_data_tmpl.CategoryList[cate_index].RowsData[i].UrlItems[j].Img = fmt.Sprintf("/static/webstack/assets/images/letters/%s.png", img_letter)
+// 					//log.Info("img_base64: %s", v_row.UrlItems[j].Img)
+// 				}
+// 			}
+// 		}
+
+// 	}
+// 	log.Info("tmpl_data_list: %v", site_data_tmpl)
+// 	return site_data_tmpl, nil
+// }
