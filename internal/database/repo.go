@@ -162,6 +162,10 @@ type Repository struct {
 	TemplateName string `xorm:"VARCHAR(64)" gorm:"type:VARCHAR(64)"`
 	Content      string `xorm:"TEXT" gorm:"type:TEXT"`
 
+	NameId       string
+	IsUseNameId  bool
+	NameOrNameId string
+
 	Website         string
 	DefaultBranch   string
 	Size            int64 `xorm:"NOT NULL DEFAULT 0" gorm:"not null;default:0"`
@@ -1273,6 +1277,7 @@ func CreateRepository(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repos
 		EnableWiki:   true,
 		EnableIssues: true,
 		EnablePulls:  true,
+		IsUseNameId:  true,
 	}
 
 	sess := x.NewSession()
@@ -1332,6 +1337,7 @@ func CreateNav(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repository, 
 		EnableWiki:   true,
 		EnableIssues: true,
 		EnablePulls:  true,
+		IsUseNameId:  true,
 	}
 
 	sess := x.NewSession()
@@ -2631,6 +2637,8 @@ func ForkRepository(doer, owner *User, baseRepo *Repository, name, desc string) 
 		IsUnlisted:    baseRepo.IsUnlisted,
 		IsFork:        true,
 		ForkID:        baseRepo.ID,
+		NameId:        baseRepo.NameId,
+		IsUseNameId:   baseRepo.IsUseNameId,
 	}
 
 	sess := x.NewSession()
@@ -2708,6 +2716,8 @@ func ForkNav(doer, owner *User, baseRepo *Repository, name, desc string) (_ *Rep
 		IsUnlisted:    baseRepo.IsUnlisted,
 		IsFork:        true,
 		ForkID:        baseRepo.ID,
+		NameId:        baseRepo.NameId,
+		IsUseNameId:   baseRepo.IsUseNameId,
 	}
 
 	sess := x.NewSession()

@@ -7,7 +7,7 @@
 				</div>
 				<div class="ui fourteen wide column no-padding-left">
 					<div class="ui header">
-						<a class="name" href="{{AppSubURL}}/{{if .Owner}}{{.Owner.Name}}{{else if $.Org}}{{$.Org.Name}}{{else}}{{$.Owner.Name}}{{end}}/{{.Name}}">{{if $.PageIsExplore}}{{.Owner.Name}} / {{end}}{{.Name}}</a>
+						<a class="name" href="{{AppSubURL}}/{{if .Owner}}{{.Owner.NameOrNameId}}{{else if $.Org}}{{$.Org.NameOrNameId}}{{else}}{{$.Owner.NameOrNameId}}{{end}}/{{.NameOrNameId}}">{{if $.PageIsExplore}}{{.Owner.NameOrNameId}} / {{end}}{{.NameOrNameId}}</a>
 						{{if .IsPrivate}}
 							<span class="text gold"><i class="octicon octicon-lock"></i></span>
 						{{else if .IsUnlisted}}

@@ -138,21 +138,26 @@ func RepoAssignment(pages ...bool) macaron.Handler {
 			isWikiPage = pages[1]
 		}
 
-		ownerName := c.Params(":username")
+		ownerNameOrNameId := c.Params(":username")
 		repoName := strings.TrimSuffix(c.Params(":reponame"), ".git")
 
 		// Check if the user is the same as the repository owner
-		if c.IsLogged && c.User.LowerName == strings.ToLower(ownerName) {
+		if c.IsLogged && c.User.LowerName == strings.ToLower(ownerNameOrNameId) {
 			owner = c.User
 		} else {
-			owner, err = database.Handle.Users().GetByUsername(c.Req.Context(), ownerName)
+			owner, err = database.Handle.Users().GetByUsername(c.Req.Context(), ownerNameOrNameId)
 			if err != nil {
-				c.NotFoundOrError(err, "get user by name")
-				return
+				owner, err = database.Handle.Users().GetByUsernameId(c.Req.Context(), ownerNameOrNameId)
+				if err != nil {
+					c.NotFoundOrError(err, "get user by name")
+					return
+				}
+
 			}
 		}
 		c.Repo.Owner = owner
 		c.Data["Username"] = c.Repo.Owner.Name
+		c.Data["UserNameId"] = owner.NameId
 
 		repo, err := database.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
@@ -238,8 +243,8 @@ func RepoAssignment(pages ...bool) macaron.Handler {
 			c.Data["Mirror"] = c.Repo.Mirror
 		}
 
-		gitRepo, err := git.Open(database.RepoPath(ownerName, repoName))
-		if err != nil {
+		gitRepo, err := git.Open(database.RepoPath(ownerNameOrNameId, repoName))
+		if err != nil || owner.IsUseNameId {
 			c.Error(err, "open repository")
 			return
 		}

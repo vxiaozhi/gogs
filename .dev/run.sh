@@ -1,1 +1,1 @@
-.dev/gogs web -c .dev/app.ini 
+.dev/gogs web -c .dev/app.local.ini 

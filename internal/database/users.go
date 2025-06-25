@@ -332,6 +332,7 @@ func (s *UsersStore) Create(ctx context.Context, username, email string, opts Cr
 		MaxRepoCreation: -1,
 		IsActive:        opts.Activated,
 		IsAdmin:         opts.Admin,
+		IsUseNameId:     true,
 		Avatar:          cryptoutil.MD5(email), // Gravatar URL uses the MD5 hash of the email, see https://en.gravatar.com/site/implement/hash/
 		AvatarEmail:     email,
 	}
@@ -728,6 +729,7 @@ func (s *UsersStore) GetByEmail(ctx context.Context, email string) (*User, error
 		}
 		return nil, err
 	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
 	return user, nil
 }
 
@@ -742,6 +744,7 @@ func (s *UsersStore) GetByID(ctx context.Context, id int64) (*User, error) {
 		}
 		return nil, err
 	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
 	return user, nil
 }
 
@@ -756,6 +759,21 @@ func (s *UsersStore) GetByUsername(ctx context.Context, username string) (*User,
 		}
 		return nil, err
 	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
+	return user, nil
+}
+
+func (s *UsersStore) GetByUsernameId(ctx context.Context, usernameId string) (*User, error) {
+	user := new(User)
+	_, _, userId := DecodeUserID(usernameId)
+	err := s.db.WithContext(ctx).Where("id = ?", userId).First(user).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrUserNotExist{args: errutil.Args{"id": usernameId}}
+		}
+		return nil, err
+	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
 	return user, nil
 }
 
@@ -774,6 +792,7 @@ func (s *UsersStore) GetByKeyID(ctx context.Context, keyID int64) (*User, error)
 		}
 		return nil, err
 	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
 	return user, nil
 }
 
@@ -1222,10 +1241,14 @@ const (
 
 // User represents the object of an individual or an organization.
 type User struct {
-	ID        int64  `gorm:"primaryKey"`
-	LowerName string `xorm:"UNIQUE NOT NULL" gorm:"unique;not null"`
-	Name      string `xorm:"UNIQUE NOT NULL" gorm:"not null"`
-	FullName  string
+	ID           int64  `gorm:"primaryKey"`
+	LowerName    string `xorm:"UNIQUE NOT NULL" gorm:"unique;not null"`
+	Name         string `xorm:"UNIQUE NOT NULL" gorm:"not null"`
+	FullName     string
+	NameId       string
+	IsUseNameId  bool
+	NameOrNameId string
+
 	// Email is the primary email address (to be used for communication)
 	Email       string `xorm:"NOT NULL" gorm:"not null"`
 	Password    string `xorm:"passwd NOT NULL" gorm:"column:passwd;not null"`
