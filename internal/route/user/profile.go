@@ -92,6 +92,12 @@ func NavProfile(c *context.Context, puser *context.ParamsUser) {
 
 	c.Title(puser.DisplayName())
 	c.PageIs("UserProfile")
+
+	if puser.IsUseNameId == true {
+		puser.NameOrNameId = puser.NameId
+	} else {
+		puser.NameOrNameId = puser.LowerName
+	}
 	c.Data["Owner"] = puser
 
 	orgs, err := database.GetOrgsByUserID(puser.ID, c.IsLogged && (c.User.IsAdmin || c.User.ID == puser.ID))

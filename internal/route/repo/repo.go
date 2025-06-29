@@ -73,7 +73,7 @@ func Create(c *context.Context) {
 	c.Data["Gitignores"] = database.Gitignores
 	c.Data["Licenses"] = database.Licenses
 	c.Data["Readmes"] = database.Readmes
-	c.Data["TemplateNames"] = []string{"webstack"}
+	c.Data["TemplateNames"] = []string{"webstack", "md"}
 	c.Data["readme"] = "Default"
 	c.Data["private"] = c.User.LastRepoVisibility
 	c.Data["IsForcedPrivate"] = conf.Repository.ForcePrivate

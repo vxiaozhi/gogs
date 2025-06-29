@@ -1,6 +1,7 @@
 package database
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/sqids/sqids-go"
@@ -14,6 +15,13 @@ const (
 	SQIDS_UserPrefix uint64 = 1
 
 	SQIDS_TimestampPrefix uint64 = 10
+)
+
+var (
+	RepoTemplateIdMap = map[string]uint64{
+		"webstack": 1,
+		"md":       2,
+	}
 )
 
 func encodeSqids(ids []uint64) string {
@@ -53,6 +61,27 @@ func EncodeRepoID(repoId uint64, repoTemplateId uint64) string {
 func DecodeRepoID(id string) (uint64, uint64, uint64) {
 	ids := decodeSqids(id)
 	return ids[0], ids[1], ids[2]
+}
+
+func EncodeRepoIDByTemplateName(repoId uint64, repoTemplateName string) (string, error) {
+	repoTemplateId, ok := RepoTemplateIdMap[repoTemplateName]
+	if !ok {
+		return "", fmt.Errorf("unknown repo template name: %s", repoTemplateName)
+	}
+	return EncodeRepoID(repoId, repoTemplateId), nil
+}
+
+func DecodeRepoIDToTemplateName(id string) (uint64, uint64, string, error) {
+	appPrefix, repoTemplateId, repoId := DecodeRepoID(id)
+	if appPrefix != SQIDS_AppPrefix {
+		return 0, 0, "", fmt.Errorf("invalid app prefix: %d", appPrefix)
+	}
+	for templateName, templateId := range RepoTemplateIdMap {
+		if templateId == repoTemplateId {
+			return appPrefix, repoId, templateName, nil
+		}
+	}
+	return 0, 0, "", fmt.Errorf("unknown repo template id: %d", repoTemplateId)
 }
 
 func EncodeIDByTimestamp(timestamp uint64) string {

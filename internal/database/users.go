@@ -347,7 +347,21 @@ func (s *UsersStore) Create(ctx context.Context, username, email string, opts Cr
 	}
 	user.Password = userutil.EncodePassword(user.Password, user.Salt)
 
-	return user, s.db.WithContext(ctx).Create(user).Error
+	createErr := s.db.WithContext(ctx).Create(user).Error
+	if createErr != nil {
+		return nil, createErr
+	}
+
+	user, err = s.GetByUsername(ctx, user.LowerName)
+	if err != nil {
+		return nil, err
+	}
+	user.NameId = EncodeUserID(uint64(user.ID), SQIDS_UserPrefix)
+
+	// update user
+	err = s.db.WithContext(ctx).Model(user).Update("name_id", user.NameId).Error
+
+	return user, nil
 }
 
 // DeleteCustomAvatar deletes the current user custom avatar and falls back to

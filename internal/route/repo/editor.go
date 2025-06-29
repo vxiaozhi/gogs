@@ -381,20 +381,23 @@ func EditNavRawContentPost(c *context.Context, f form.EditNavContent) {
 		return
 	}
 	repo := c.Repo.Repository
-	repo.Content = f.Content
 
-	// 对 Content 进行校正修复。
+	if repo.TemplateName == "webstack" {
+		// 对 Content 进行校正修复。
 
-	nav_content, err := staticsite.NewNavContentStruct(f.Content)
-	if err != nil {
-		log.Error("Error: %v", err)
-		return
-	}
-	repo.Content, err = nav_content.FixAndToJson()
+		nav_content, err := staticsite.NewNavContentStruct(f.Content)
+		if err != nil {
+			log.Error("Error: %v", err)
+			return
+		}
+		repo.Content, err = nav_content.FixAndToJson()
 
-	if err != nil {
-		log.Error("Error: %v", err)
-		return
+		if err != nil {
+			log.Error("Error: %v", err)
+			return
+		}
+	} else if repo.TemplateName == "md" {
+		repo.Content = f.Content
 	}
 
 	if err := database.UpdateRepository(repo, false); err != nil {

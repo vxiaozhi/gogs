@@ -318,7 +318,13 @@ func NavHome(c *context.Context) {
 	template_name := c.Repo.Repository.TemplateName
 	//site_data_list, _ := staticsite.GetSiteDataTmpl(staticsite.Site_data_list)
 	//c.Data["SiteDataTmpl"] = site_data_list
-	c.Data["SiteDataTmpl"], _ = staticsite.GetSiteDataTmpl(c.Repo.Repository.Content)
+	if template_name == "webstack" {
+		c.Data["SiteDataTmpl"], _ = staticsite.GetSiteDataTmpl(c.Repo.Repository.Content)
+	} else if template_name == "md" {
+		data := staticsite.GetMdRederData(c.Repo.Repository.Content)
+		c.Data["SiteDataTmpl"] = data
+
+	}
 	c.Success(fmt.Sprintf("static/%s", template_name))
 }
 func RenderUserCards(c *context.Context, total int, getter func(page int) ([]*database.User, error), tpl string) {

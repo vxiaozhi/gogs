@@ -325,23 +325,39 @@ func NavAssignment(pages ...bool) macaron.Handler {
 		ownerName := c.Params(":username")
 		repoName := c.Params(":reponame")
 
+		isUserUserNameId := false
+
 		// Check if the user is the same as the repository owner
 		if c.IsLogged && c.User.LowerName == strings.ToLower(ownerName) {
 			owner = c.User
 		} else {
 			owner, err = database.Handle.Users().GetByUsername(c.Req.Context(), ownerName)
 			if err != nil {
-				c.NotFoundOrError(err, "get user by name")
-				return
+				owner, err = database.Handle.Users().GetByUsernameId(c.Req.Context(), ownerName)
+				if err != nil {
+					c.NotFoundOrError(err, "get user by name")
+					return
+				}
+				isUserUserNameId = true
+
 			}
 		}
 		c.Repo.Owner = owner
 		c.Data["Username"] = c.Repo.Owner.Name
 
-		repo, err := database.GetRepositoryByName(owner.ID, repoName)
-		if err != nil {
-			c.NotFoundOrError(err, "get repository by name")
-			return
+		var repo *database.Repository
+		if isUserUserNameId {
+			repo, err = database.GetRepositoryByNameId(owner.ID, repoName)
+			if err != nil {
+				c.NotFoundOrError(err, "get repository by name")
+				return
+			}
+		} else {
+			repo, err = database.GetRepositoryByName(owner.ID, repoName)
+			if err != nil {
+				c.NotFoundOrError(err, "get repository by name")
+				return
+			}
 		}
 
 		c.Repo.Repository = repo

@@ -1360,6 +1360,20 @@ func CreateNav(doer, owner *User, opts CreateRepoOptionsLegacy) (_ *Repository, 
 		return nil, errors.Wrap(err, "update user")
 	}
 
+	// 查询 Nav ID，并更新NameID
+	repo, err = GetRepositoryByName(owner.ID, repo.Name)
+	if err != nil {
+		return nil, errors.Wrapf(err, "GetRepositoryByName:%s", repo.Name)
+	}
+	nameId, err := EncodeRepoIDByTemplateName(uint64(repo.ID), repo.TemplateName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "EncodeRepoIDByTemplateName:%s", repo.TemplateName)
+	}
+	repo.NameId = nameId
+	if _, err = sess.ID(repo.ID).Cols("name_id").Update(repo); err != nil {
+		return nil, fmt.Errorf("update name_id: %v", err)
+	}
+
 	return repo, nil
 }
 
@@ -1885,6 +1899,34 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, repo.LoadAttributes()
 }
 
+func GetRepositoryByNameId(ownerID int64, nameId string) (*Repository, error) {
+	_, repoID, _, err := DecodeRepoIDToTemplateName(nameId)
+	if err != nil {
+		return nil, fmt.Errorf("DecodeRepoIDToTemplateName: %v", err)
+	}
+	repo := &Repository{
+		OwnerID: ownerID,
+		ID:      int64(repoID),
+	}
+	has, err := x.Get(repo)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrRepoNotExist{args: map[string]any{"ownerID": ownerID, "nameId": nameId}}
+	}
+	repo.NameId = nameId
+	if err = repo.loadAttributes(x); err != nil {
+		return nil, fmt.Errorf("loadAttributes: %v", err)
+	}
+	if repo.IsUseNameId {
+		repo.NameOrNameId = repo.NameId
+	} else {
+		repo.NameOrNameId = repo.Name
+	}
+	return repo, nil
+}
+
 func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 	repo := new(Repository)
 	has, err := e.ID(id).Get(repo)
@@ -1922,7 +1964,19 @@ func GetUserRepositories(opts *UserRepoOptions) ([]*Repository, error) {
 	sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, sess.Find(&repos)
+	err := sess.Find(&repos)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserRepositories: %v", err)
+	}
+	for i := range repos {
+		if repos[i].IsUseNameId {
+			repos[i].NameOrNameId = repos[i].NameId
+		} else {
+			repos[i].NameOrNameId = repos[i].Name
+		}
+
+	}
+	return repos, err
 }
 
 // GetUserRepositories returns a list of mirror repositories of given user.
